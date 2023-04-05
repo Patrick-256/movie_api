@@ -35,7 +35,7 @@ def get_character(id: str):
             json = character
 
     if json is None:
-        raise HTTPException(status_code=404, detail="movie not found.")
+        raise HTTPException(status_code=404, detail="character not found.")
 
     return json
 
