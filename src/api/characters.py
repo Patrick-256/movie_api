@@ -4,6 +4,76 @@ from src import database as db
 
 router = APIRouter()
 
+def getNumLinesOfConvo(id: str):
+    #returns how many lines a certain conversation is
+    numLines = 0
+
+    for line in db.lines:
+        if line["conversation_id"] == id:
+            numLines += 1
+    
+    return numLines
+
+
+def getMovieTitle(id: str):
+    for movie in db.movies:
+        if movie["movie_id"] == id:
+            print("movie found")
+            return movie["title"]
+    print("movie not found :(")
+    return None
+
+def getCharacterGender(character):
+    if character["gender"] == "M":
+        return "M"
+    if character["gender"] == "F":
+        return "F"
+    return None
+
+def getMostLines(id: str):
+    highConvoCount = 0
+    mostTalkedId = None
+    currentConvoCount = 0
+    currentTalkedId = None
+
+    for convo in db.conversations:
+        if convo["character1_id"] == id:
+            if convo["character2_id"] == currentTalkedId:
+                currentConvoCount += getNumLinesOfConvo(convo["conversation_id"])
+            else:
+                currentTalkedId = convo["character2_id"]
+                currentConvoCount = getNumLinesOfConvo(convo["conversation_id"])
+
+            if currentConvoCount > highConvoCount:
+                highConvoCount = currentConvoCount
+                mostTalkedId = currentTalkedId
+
+        if convo["character2_id"] == id:
+            if convo["character1_id"] == currentTalkedId:
+                currentConvoCount += getNumLinesOfConvo(convo["conversation_id"])
+            else:
+                currentTalkedId = convo["character1_id"]
+                currentConvoCount = getNumLinesOfConvo(convo["conversation_id"])
+
+            if currentConvoCount > highConvoCount:
+                highConvoCount = currentConvoCount
+                mostTalkedId = currentTalkedId
+
+    json = None
+    
+    for character in db.characters:
+          if character["character_id"] == mostTalkedId:
+              print("most talked to character found")
+              json = [{
+                "character_id":mostTalkedId,
+                "character":character["name"],
+                "gender":getCharacterGender(character),
+                "number_of_lines_together":highConvoCount
+              }]
+
+    return json
+
+
 
 @router.get("/characters/{id}", tags=["characters"])
 def get_character(id: str):
@@ -32,7 +102,13 @@ def get_character(id: str):
     for character in db.characters:
         if character["character_id"] == id:
             print("character found")
-            json = character
+            json = {
+              "character_id":id,
+              "character":character["name"],
+              "movie":getMovieTitle(character["movie_id"]),
+              "gender":getCharacterGender(character),
+              "top_conversations":getMostLines(id)
+            }
 
     if json is None:
         raise HTTPException(status_code=404, detail="character not found.")
@@ -75,5 +151,9 @@ def list_characters(
     number of results to skip before returning results.
     """
 
-    json = None
-    return json
+    jsonArray = []
+
+    x = 0
+    for x in range(50):
+        jsonArray = get_character(x)
+    return jsonArray

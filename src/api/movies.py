@@ -4,6 +4,29 @@ from src import database as db
 
 router = APIRouter()
 
+def getTop5charactersFromMovie(id: str):
+    #look at convos for the given movie id
+    #keep track of the top 5 character ids with the most occurences
+    topCharacterIds = [None,None,None,None,None]
+    topCharacterCounts = [0,0,0,0,0]
+
+    currentCharacterId = None
+    currentCharacterCount = 0
+
+    for convo in db.conversations:
+        if convo["movie_id"] == id:
+            #characters are in the movie
+            
+            #increment currentCharacter if this character is the same
+            if currentCharacterId == convo["character1_id"]:
+                currentCharacterCount += 1
+            else:
+                currentCharacterId = convo["character1_id"]
+                currentCharacterCount = 1
+
+            #check if current character is better than the bests'
+            
+
 
 # include top 3 actors by number of lines
 @router.get("/movies/{movie_id}", tags=["movies"])
@@ -26,6 +49,11 @@ def get_movie(movie_id: str):
     for movie in db.movies:
         if movie["movie_id"] == id:
             print("movie found")
+            json = {
+                "movie_id":id,
+                "title":movie["title"],
+                "top_characters":[getTop5charactersFromMovie(id)]
+            }
 
     json = None
 
