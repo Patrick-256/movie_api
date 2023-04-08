@@ -14,6 +14,14 @@ def getNumLinesOfConvo(id: str):
     
     return numLines
 
+def getCharacterFromID(id: str):
+    #returns the character of the given character id
+    for character in db.characters:
+        if character["character_id"] == id:
+            return character
+    return None
+
+
 
 def getMovieTitle(id: str):
     for movie in db.movies:
@@ -31,45 +39,84 @@ def getCharacterGender(character):
     return None
 
 def getMostLines(id: str):
-    highConvoCount = 0
+    highLineCount = 0
     mostTalkedId = None
     currentConvoCount = 0
     currentTalkedId = None
+
+    characterIDsAlreadyConsidered = []
+    topCharacterLines = []
 
     for convo in db.conversations:
         if convo["character1_id"] == id:
             if convo["character2_id"] == currentTalkedId:
                 currentConvoCount += getNumLinesOfConvo(convo["conversation_id"])
+                topCharacterLines[0] += getNumLinesOfConvo(convo["conversation_id"])
             else:
                 currentTalkedId = convo["character2_id"]
                 currentConvoCount = getNumLinesOfConvo(convo["conversation_id"])
+                characterIDsAlreadyConsidered.insert(0,currentTalkedId)
+                topCharacterLines.insert(0,currentConvoCount)
 
-            if currentConvoCount > highConvoCount:
-                highConvoCount = currentConvoCount
+            if currentConvoCount > highLineCount:
+                highLineCount = currentConvoCount
                 mostTalkedId = currentTalkedId
 
         if convo["character2_id"] == id:
             if convo["character1_id"] == currentTalkedId:
                 currentConvoCount += getNumLinesOfConvo(convo["conversation_id"])
+                topCharacterLines[0] += getNumLinesOfConvo(convo["conversation_id"])
             else:
                 currentTalkedId = convo["character1_id"]
                 currentConvoCount = getNumLinesOfConvo(convo["conversation_id"])
+                characterIDsAlreadyConsidered.insert(0,currentTalkedId)
+                topCharacterLines.insert(0,currentConvoCount)
 
-            if currentConvoCount > highConvoCount:
-                highConvoCount = currentConvoCount
+            if currentConvoCount > highLineCount:
+                highLineCount = currentConvoCount
                 mostTalkedId = currentTalkedId
 
-    json = None
+
+
+    #sort arrays based on line count
+    sortingDone = False
+    numOfSwaps = 0
+
+    while sortingDone == False: 
+        for i in range(len(topCharacterLines)-1):
+            if topCharacterLines[i] < topCharacterLines[i+1]:
+                print("swapping")
+                #perform swap on both characterline counts and character ID arrays
+                numOfSwaps += 1
+                temp = topCharacterLines[i]
+                temp2 = characterIDsAlreadyConsidered[i]
+
+                topCharacterLines[i] = topCharacterLines[i+1]
+                topCharacterLines[i+1] = temp
+                characterIDsAlreadyConsidered[i] = characterIDsAlreadyConsidered[i+1]
+                characterIDsAlreadyConsidered[i+1] = temp2
+        print(numOfSwaps)
+        print(topCharacterLines)
+        print(characterIDsAlreadyConsidered)
+        if numOfSwaps == 0:
+            sortingDone = True
+            print("sorting done")
+        numOfSwaps = 0
+
+
+    json = []
     
-    for character in db.characters:
-          if character["character_id"] == mostTalkedId:
-              print("most talked to character found")
-              json = [{
-                "character_id":mostTalkedId,
-                "character":character["name"],
-                "gender":getCharacterGender(character),
-                "number_of_lines_together":highConvoCount
-              }]
+    
+    for i in range(len(characterIDsAlreadyConsidered)):
+        character = getCharacterFromID(characterIDsAlreadyConsidered[i])
+          
+        characterConvo = {
+            "character_id":characterIDsAlreadyConsidered[i],
+            "character":character["name"],
+            "gender":getCharacterGender(character),
+            "number_of_lines_together":topCharacterLines[i]
+        }
+        json.append(characterConvo)
 
     return json
 
