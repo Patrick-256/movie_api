@@ -104,9 +104,7 @@ def getMostLines(id: str):
         numOfSwaps = 0
 
 
-    json = []
-    
-    
+    json = [] 
     for i in range(len(characterIDsAlreadyConsidered)):
         character = getCharacterFromID(characterIDsAlreadyConsidered[i])
           
@@ -202,5 +200,5 @@ def list_characters(
 
     x = 0
     for x in range(50):
-        jsonArray = get_character(x)
+        jsonArray.append(get_character(x))
     return jsonArray

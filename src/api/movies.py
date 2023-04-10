@@ -4,28 +4,104 @@ from src import database as db
 
 router = APIRouter()
 
+def getNumLinesOfConvo(convo_id: str,character_id: str):
+    #returns how many lines a certain conversation is
+    numLines = 0
+
+    for line in db.lines:
+        if line["conversation_id"] == convo_id and line["character_id"] == character_id:
+            numLines += 1
+    
+    return numLines
+
+def getCharacterName(id: str):
+    for character in db.characters:
+        if character["character_id"] == id:
+            return character["name"]
+    return None
+
 def getTop5charactersFromMovie(id: str):
     #look at convos for the given movie id
     #keep track of the top 5 character ids with the most occurences
-    topCharacterIds = [None,None,None,None,None]
-    topCharacterCounts = [0,0,0,0,0]
-
-    currentCharacterId = None
-    currentCharacterCount = 0
+    characterIds = [-1]
+    characterLineCounts = [-1]
 
     for convo in db.conversations:
         if convo["movie_id"] == id:
-            #characters are in the movie
-            
+            #characters are in the movie      
             #increment currentCharacter if this character is the same
-            if currentCharacterId == convo["character1_id"]:
-                currentCharacterCount += 1
+            if characterIds[0] == convo["character1_id"]:
+                characterLineCounts[0] += getNumLinesOfConvo(convo["conversation_id"],convo["character1_id"])
             else:
-                currentCharacterId = convo["character1_id"]
-                currentCharacterCount = 1
+                characterIds.insert(0,convo["character1_id"])
+                characterLineCounts.insert(0, getNumLinesOfConvo(convo["conversation_id"],convo["character1_id"]))
 
-            #check if current character is better than the bests'
-            
+    for convo in db.conversations:
+        if convo["movie_id"] == id:
+            #characters are in the movie      
+            #increment currentCharacter if this character is the same
+            if characterIds[0] == convo["character2_id"]:
+                characterLineCounts[0] += getNumLinesOfConvo(convo["conversation_id"],convo["character1_id"])
+            else:
+                characterIds.insert(0,convo["character2_id"])
+                characterLineCounts.insert(0, getNumLinesOfConvo(convo["conversation_id"],convo["character1_id"]))
+
+    #aggregate same characters
+    characterIds_agg = [-1]
+    characterLineCounts_agg = [-1]
+
+    print(characterIds)
+    print(characterLineCounts)
+    for i in range(len(characterIds)):
+        #check if its already in agg array
+        idFound = False
+        for k in range(len(characterIds_agg)):
+            if characterIds_agg[k] == characterIds[i]:  
+                characterLineCounts_agg[k] += characterLineCounts[i]
+                idFound = True
+
+        if idFound == False:
+            characterIds_agg.insert(0,characterIds[i])
+            characterLineCounts_agg.insert(0,characterLineCounts[i])
+        # print(characterIds_agg)
+        # print(characterLineCounts_agg)
+
+    print("done aggregating")
+    print(characterIds_agg)
+    print(characterLineCounts_agg)
+    #sort them
+    sortComplete = False
+    numOfSwaps = 0
+
+    while sortComplete == False:
+        numOfSwaps = 0
+        for i in range(len(characterLineCounts_agg)-1):
+            if characterLineCounts_agg[i] < characterLineCounts_agg[i+1]:
+                #swap them
+                numOfSwaps += 1
+
+                temp1 = characterLineCounts_agg[i]
+                characterLineCounts_agg[i] = characterLineCounts_agg[i+1]
+                characterLineCounts_agg[i+1] = temp1
+                
+                temp2 = characterIds_agg[i]
+                characterIds_agg[i] = characterIds_agg[i+1]
+                characterIds_agg[i+1] = temp2
+        
+        if numOfSwaps == 0: sortComplete = True
+
+
+    json = []
+    for i in range(5):
+        if characterIds_agg[i] == -1: return json
+        character = {
+            "character_id":characterIds_agg[i],
+            "character":getCharacterName(characterIds_agg[i]),
+            "num_lines":characterLineCounts_agg[i]
+        }
+        json.append(character)
+    return json
+
 
 
 # include top 3 actors by number of lines
@@ -45,17 +121,18 @@ def get_movie(movie_id: str):
     * `num_lines`: The number of lines the character has in the movie.
 
     """
+    json = None
 
     for movie in db.movies:
-        if movie["movie_id"] == id:
+        if movie["movie_id"] == movie_id:
             print("movie found")
             json = {
-                "movie_id":id,
+                "movie_id":movie_id,
                 "title":movie["title"],
-                "top_characters":[getTop5charactersFromMovie(id)]
+                "top_characters":getTop5charactersFromMovie(movie_id)
             }
 
-    json = None
+    
 
     if json is None:
         raise HTTPException(status_code=404, detail="movie not found.")
