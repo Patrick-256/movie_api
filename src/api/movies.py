@@ -11,7 +11,8 @@ def getNumLinesOfConvo(convo_id: str,character_id: str):
     for line in db.lines:
         if line["conversation_id"] == convo_id and line["character_id"] == character_id:
             numLines += 1
-    
+            
+    print("adding lines- charID:",character_id," convoID: ",convo_id," numLines: ",numLines)
     return numLines
 
 def getCharacterName(id: str):
@@ -176,6 +177,6 @@ def list_movies(
     maximum number of results to return. The `offset` query parameter specifies the
     number of results to skip before returning results.
     """
-    json = None
+    
 
-    return json
+    return "heres a list of movies"

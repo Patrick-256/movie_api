@@ -196,9 +196,4 @@ def list_characters(
     number of results to skip before returning results.
     """
 
-    jsonArray = []
-
-    x = 0
-    for x in range(50):
-        jsonArray.append(get_character(x))
-    return jsonArray
+    return "here's a list of characters"
