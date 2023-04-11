@@ -12,7 +12,7 @@ def getNumLinesOfConvo(convo_id: str,character_id: str):
         if line["conversation_id"] == convo_id and line["character_id"] == character_id:
             numLines += 1
             
-    print("adding lines- charID:",character_id," convoID: ",convo_id," numLines: ",numLines)
+    #print("adding lines- charID:",character_id," convoID: ",convo_id," numLines: ",numLines)
     return numLines
 
 def getCharacterName(id: str):
@@ -51,8 +51,8 @@ def getTop5charactersFromMovie(id: str):
     characterIds_agg = [-1]
     characterLineCounts_agg = [-1]
 
-    print(characterIds)
-    print(characterLineCounts)
+    #print(characterIds)
+    #print(characterLineCounts)
     for i in range(len(characterIds)):
         #check if its already in agg array
         idFound = False
@@ -64,12 +64,12 @@ def getTop5charactersFromMovie(id: str):
         if idFound == False:
             characterIds_agg.insert(0,characterIds[i])
             characterLineCounts_agg.insert(0,characterLineCounts[i])
-        # print(characterIds_agg)
-        # print(characterLineCounts_agg)
+        # #print(characterIds_agg)
+        # #print(characterLineCounts_agg)
 
-    print("done aggregating")
-    print(characterIds_agg)
-    print(characterLineCounts_agg)
+    #print("done aggregating")
+    #print(characterIds_agg)
+    #print(characterLineCounts_agg)
     #sort them
     sortComplete = False
     numOfSwaps = 0
@@ -126,7 +126,7 @@ def get_movie(movie_id: str):
 
     for movie in db.movies:
         if movie["movie_id"] == movie_id:
-            print("movie found")
+            #print("movie found")
             json = {
                 "movie_id":movie_id,
                 "title":movie["title"],
@@ -178,5 +178,6 @@ def list_movies(
     number of results to skip before returning results.
     """
     
+
 
     return "heres a list of movies"

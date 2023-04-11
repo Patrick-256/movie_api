@@ -26,9 +26,9 @@ def getCharacterFromID(id: str):
 def getMovieTitle(id: str):
     for movie in db.movies:
         if movie["movie_id"] == id:
-            print("movie found")
+            #print("movie found")
             return movie["title"]
-    print("movie not found :(")
+    #print("movie not found :(")
     return None
 
 def getCharacterGender(character):
@@ -85,7 +85,7 @@ def getMostLines(id: str):
     while sortingDone == False: 
         for i in range(len(topCharacterLines)-1):
             if topCharacterLines[i] < topCharacterLines[i+1]:
-                print("swapping")
+                #print("swapping")
                 #perform swap on both characterline counts and character ID arrays
                 numOfSwaps += 1
                 temp = topCharacterLines[i]
@@ -95,12 +95,12 @@ def getMostLines(id: str):
                 topCharacterLines[i+1] = temp
                 characterIDsAlreadyConsidered[i] = characterIDsAlreadyConsidered[i+1]
                 characterIDsAlreadyConsidered[i+1] = temp2
-        print(numOfSwaps)
-        print(topCharacterLines)
-        print(characterIDsAlreadyConsidered)
+        #print(numOfSwaps)
+        #print(topCharacterLines)
+        #print(characterIDsAlreadyConsidered)
         if numOfSwaps == 0:
             sortingDone = True
-            print("sorting done")
+            #print("sorting done")
         numOfSwaps = 0
 
 
@@ -146,7 +146,7 @@ def get_character(id: str):
 
     for character in db.characters:
         if character["character_id"] == id:
-            print("character found")
+            #print("character found")
             json = {
               "character_id":id,
               "character":character["name"],
@@ -165,6 +165,38 @@ class character_sort_options(str, Enum):
     character = "character"
     movie = "movie"
     number_of_lines = "number_of_lines"
+
+def getNumLinesOfConvo(convo_id: str,character_id: str):
+    #returns how many lines a certain conversation is
+    numLines = 0
+
+    for line in db.lines:
+        if line["conversation_id"] == convo_id and line["character_id"] == character_id:
+            numLines += 1
+            
+    #print("adding lines- charID:",character_id," convoID: ",convo_id," numLines: ",numLines)
+    return numLines
+
+def getCharacterNumLines(id: str):
+    numLines = 0
+    for convo in db.conversations:
+        if convo["character1_id"] == id or convo["character2_id"] == id:
+            numLines += getNumLinesOfConvo(convo["conversation_id"],id)
+    return numLines
+
+
+def getCharacterSimple(id: str):
+    for character in db.characters:
+        if character["character_id"] == id:
+            #print("character found simple")
+            json = {
+              "character_id":id,
+              "character":character["name"],
+              "movie":getMovieTitle(character["movie_id"]),
+              "number_of_lines":getCharacterNumLines(id)
+            }
+            return json
+    return None
 
 
 @router.get("/characters/", tags=["characters"])
@@ -195,5 +227,22 @@ def list_characters(
     maximum number of results to return. The `offset` query parameter specifies the
     number of results to skip before returning results.
     """
-
-    return "here's a list of characters"
+    json = []
+    if name == "":
+        #list out the first 50 characters
+        for character in db.characters:
+            if offset > 0:
+                offset -= 1
+            else:
+                if limit > 0:
+                    json.insert(0,getCharacterSimple(character["character_id"]))
+                    limit -= 1
+                else: break
+    else:
+        for character in db.characters:
+            if name in character["name"]:
+                if limit > 0:
+                    json.insert(0,getCharacterSimple(character["character_id"]))
+                    limit -= 1
+                else: break
+    return json
