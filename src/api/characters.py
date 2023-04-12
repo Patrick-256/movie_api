@@ -185,18 +185,14 @@ def getCharacterNumLines(id: str):
     return numLines
 
 
-def getCharacterSimple(id: str):
-    for character in db.characters:
-        if character["character_id"] == id:
-            #print("character found simple")
-            json = {
-              "character_id":id,
-              "character":character["name"],
-              "movie":getMovieTitle(character["movie_id"]),
-              "number_of_lines":getCharacterNumLines(id)
-            }
-            return json
-    return None
+def getCharacterSimple(character):
+    json = {
+        "character_id":character["character_id"],
+        "character":character["name"],
+        "movie":getMovieTitle(character["movie_id"]),
+        "number_of_lines":getCharacterNumLines(character["character_id"])
+    }
+    return json
 
 
 @router.get("/characters/", tags=["characters"])
@@ -235,14 +231,14 @@ def list_characters(
                 offset -= 1
             else:
                 if limit > 0:
-                    json.insert(0,getCharacterSimple(character["character_id"]))
+                    json.insert(0,getCharacterSimple(character))
                     limit -= 1
                 else: break
     else:
         for character in db.characters:
             if name in character["name"]:
                 if limit > 0:
-                    json.insert(0,getCharacterSimple(character["character_id"]))
+                    json.insert(0,getCharacterSimple(character))
                     limit -= 1
                 else: break
     return json

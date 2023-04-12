@@ -12,8 +12,18 @@ def getNumLinesOfConvo(convo_id: str,character_id: str):
         if line["conversation_id"] == convo_id and line["character_id"] == character_id:
             numLines += 1
             
-    #print("adding lines- charID:",character_id," convoID: ",convo_id," numLines: ",numLines)
+    # print("adding lines- charID:",character_id," convoID: ",convo_id," numLines: ",numLines)
     return numLines
+
+def getNumLinesOfCharacter(id: str):
+    characterNumLines = 0
+    #find out what convos the character is a part of
+    for convo in db.conversations:
+        if convo["character1_id"] == id or convo["character2_id"] == id:
+            #character was part of this conversation
+            characterNumLines += getNumLinesOfConvo(convo["conversation_id"],id)
+    return characterNumLines
+
 
 def getCharacterName(id: str):
     for character in db.characters:
@@ -27,25 +37,10 @@ def getTop5charactersFromMovie(id: str):
     characterIds = [-1]
     characterLineCounts = [-1]
 
-    for convo in db.conversations:
-        if convo["movie_id"] == id:
-            #characters are in the movie      
-            #increment currentCharacter if this character is the same
-            if characterIds[0] == convo["character1_id"]:
-                characterLineCounts[0] += getNumLinesOfConvo(convo["conversation_id"],convo["character1_id"])
-            else:
-                characterIds.insert(0,convo["character1_id"])
-                characterLineCounts.insert(0, getNumLinesOfConvo(convo["conversation_id"],convo["character1_id"]))
-
-    for convo in db.conversations:
-        if convo["movie_id"] == id:
-            #characters are in the movie      
-            #increment currentCharacter if this character is the same
-            if characterIds[0] == convo["character2_id"]:
-                characterLineCounts[0] += getNumLinesOfConvo(convo["conversation_id"],convo["character1_id"])
-            else:
-                characterIds.insert(0,convo["character2_id"])
-                characterLineCounts.insert(0, getNumLinesOfConvo(convo["conversation_id"],convo["character1_id"]))
+    for character in db.characters:
+        if character["movie_id"] == id:
+            characterIds.insert(0,character["character_id"])
+            characterLineCounts.insert(0,getNumLinesOfCharacter(character["character_id"]))
 
     #aggregate same characters
     characterIds_agg = [-1]
@@ -96,7 +91,7 @@ def getTop5charactersFromMovie(id: str):
     for i in range(5):
         if characterIds_agg[i] == -1: return json
         character = {
-            "character_id":characterIds_agg[i],
+            "character_id":int(characterIds_agg[i]),
             "character":getCharacterName(characterIds_agg[i]),
             "num_lines":characterLineCounts_agg[i]
         }
@@ -128,7 +123,7 @@ def get_movie(movie_id: str):
         if movie["movie_id"] == movie_id:
             #print("movie found")
             json = {
-                "movie_id":movie_id,
+                "movie_id":int(movie_id),
                 "title":movie["title"],
                 "top_characters":getTop5charactersFromMovie(movie_id)
             }
@@ -146,6 +141,15 @@ class movie_sort_options(str, Enum):
     year = "year"
     rating = "rating"
 
+def getMovie(movie):
+    json = {
+        "movie_id":movie["movie_id"],
+        "movie_title":movie["title"],
+        "year":movie["year"],
+        "imbd_rating":movie["imdb_rating"],
+        "imbd_votes":movie["imdb_votes"]
+    }
+    return json
 
 # Add get parameters
 @router.get("/movies/", tags=["movies"])
@@ -178,6 +182,23 @@ def list_movies(
     number of results to skip before returning results.
     """
     
+    json = []
 
+    if name == "":
+        #no name provided
+        for movie in db.movies:
+            if offset > 0:
+                offset -= 1
+            else:
+                if limit > 0:
+                    json.insert(0,getMovie(movie))
+                    limit -= 1
+    else:
+        for movie in db.movies:
+            if name in movie["title"]:
+                if limit > 0:
+                    json.insert(0,getMovie(movie))
+                    limit -= 1
 
-    return "heres a list of movies"
+    return json
+
