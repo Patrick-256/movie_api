@@ -4,7 +4,27 @@ from src import database as db
 
 router = APIRouter()
 
-def getNumLinesOfConvo(id: str):
+def getNumLinesOfConvo(convo_id: str,character_id: str):
+    #returns how many lines a certain conversation is
+    numLines = 0
+
+    for line in db.lines:
+        if line["conversation_id"] == convo_id and line["character_id"] == character_id:
+            numLines += 1
+            
+    #print("adding lines- charID:",character_id," convoID: ",convo_id," numLines: ",numLines)
+    return numLines
+
+def getNumLinesOfCharacter(id: str):
+    characterNumLines = 0
+    #find out what convos the character is a part of
+    for convo in db.conversations:
+        if convo["character1_id"] == id or convo["character2_id"] == id:
+            #character was part of this conversation
+            characterNumLines += getNumLinesOfConvo(convo["conversation_id"],id)
+    return characterNumLines
+
+def getTotalNumLinesOfConvo(id: str):
     #returns how many lines a certain conversation is
     numLines = 0
 
@@ -39,42 +59,45 @@ def getCharacterGender(character):
     return None
 
 def getMostLines(id: str):
-    highLineCount = 0
-    mostTalkedId = None
-    currentConvoCount = 0
-    currentTalkedId = None
+    # highLineCount = 0
+    # mostTalkedId = None
+    # currentConvoCount = 0
+    # currentTalkedId = None
 
     characterIDsAlreadyConsidered = []
     topCharacterLines = []
 
     for convo in db.conversations:
-        if convo["character1_id"] == id:
-            if convo["character2_id"] == currentTalkedId:
-                currentConvoCount += getNumLinesOfConvo(convo["conversation_id"])
-                topCharacterLines[0] += getNumLinesOfConvo(convo["conversation_id"])
+        if convo["character1_id"] == id or convo["character2_id"] == id:
+            #found a convo with our character, find out who they talked to
+            charTalkedToId = None
+            if convo["character1_id"] == id:
+                charTalkedToId = convo["character2_id"]
             else:
-                currentTalkedId = convo["character2_id"]
-                currentConvoCount = getNumLinesOfConvo(convo["conversation_id"])
-                characterIDsAlreadyConsidered.insert(0,currentTalkedId)
-                topCharacterLines.insert(0,currentConvoCount)
+                charTalkedToId = convo["character1_id"]
 
-            if currentConvoCount > highLineCount:
-                highLineCount = currentConvoCount
-                mostTalkedId = currentTalkedId
+            characterIDsAlreadyConsidered.insert(0,charTalkedToId)
+            topCharacterLines.insert(0,getTotalNumLinesOfConvo(convo["conversation_id"]))
 
-        if convo["character2_id"] == id:
-            if convo["character1_id"] == currentTalkedId:
-                currentConvoCount += getNumLinesOfConvo(convo["conversation_id"])
-                topCharacterLines[0] += getNumLinesOfConvo(convo["conversation_id"])
-            else:
-                currentTalkedId = convo["character1_id"]
-                currentConvoCount = getNumLinesOfConvo(convo["conversation_id"])
-                characterIDsAlreadyConsidered.insert(0,currentTalkedId)
-                topCharacterLines.insert(0,currentConvoCount)
+    #aggregate the arrays
+    characterIds_agg = [-1]
+    charLines_agg = [-1]
 
-            if currentConvoCount > highLineCount:
-                highLineCount = currentConvoCount
-                mostTalkedId = currentTalkedId
+    for i in range(len(characterIDsAlreadyConsidered)):
+        idFound = False
+        for k in range(len(characterIds_agg)):
+            if characterIds_agg[k] == characterIDsAlreadyConsidered[i]:
+                charLines_agg[k] += topCharacterLines[i]
+                idFound = True
+
+        if idFound == False:
+            characterIds_agg.insert(0,characterIDsAlreadyConsidered[i])
+            charLines_agg.insert(0,topCharacterLines[i])
+
+    print("original id array:   ",characterIDsAlreadyConsidered)
+    print("aggregated id array: ",characterIds_agg)
+    print("original line array:   ",topCharacterLines)
+    print("aggregated line array: ",charLines_agg)
 
 
 
@@ -83,21 +106,21 @@ def getMostLines(id: str):
     numOfSwaps = 0
 
     while sortingDone == False: 
-        for i in range(len(topCharacterLines)-1):
-            if topCharacterLines[i] < topCharacterLines[i+1]:
+        for i in range(len(charLines_agg)-1):
+            if charLines_agg[i] < charLines_agg[i+1]:
                 #print("swapping")
                 #perform swap on both characterline counts and character ID arrays
                 numOfSwaps += 1
-                temp = topCharacterLines[i]
-                temp2 = characterIDsAlreadyConsidered[i]
+                temp = charLines_agg[i]
+                temp2 = characterIds_agg[i]
 
-                topCharacterLines[i] = topCharacterLines[i+1]
-                topCharacterLines[i+1] = temp
-                characterIDsAlreadyConsidered[i] = characterIDsAlreadyConsidered[i+1]
-                characterIDsAlreadyConsidered[i+1] = temp2
+                charLines_agg[i] = charLines_agg[i+1]
+                charLines_agg[i+1] = temp
+                characterIds_agg[i] = characterIds_agg[i+1]
+                characterIds_agg[i+1] = temp2
         #print(numOfSwaps)
-        #print(topCharacterLines)
-        #print(characterIDsAlreadyConsidered)
+        #print(charLines_agg)
+        #print(characterIds_agg)
         if numOfSwaps == 0:
             sortingDone = True
             #print("sorting done")
@@ -105,14 +128,14 @@ def getMostLines(id: str):
 
 
     json = [] 
-    for i in range(len(characterIDsAlreadyConsidered)):
-        character = getCharacterFromID(characterIDsAlreadyConsidered[i])
+    for i in range(len(characterIds_agg)-1):
+        character = getCharacterFromID(characterIds_agg[i])
           
         characterConvo = {
-            "character_id":characterIDsAlreadyConsidered[i],
+            "character_id":int(characterIds_agg[i]),
             "character":character["name"],
             "gender":getCharacterGender(character),
-            "number_of_lines_together":topCharacterLines[i]
+            "number_of_lines_together":int(charLines_agg[i])
         }
         json.append(characterConvo)
 
@@ -148,7 +171,7 @@ def get_character(id: str):
         if character["character_id"] == id:
             #print("character found")
             json = {
-              "character_id":id,
+              "character_id":int(id),
               "character":character["name"],
               "movie":getMovieTitle(character["movie_id"]),
               "gender":getCharacterGender(character),
@@ -166,23 +189,7 @@ class character_sort_options(str, Enum):
     movie = "movie"
     number_of_lines = "number_of_lines"
 
-def getNumLinesOfConvo(convo_id: str,character_id: str):
-    #returns how many lines a certain conversation is
-    numLines = 0
 
-    for line in db.lines:
-        if line["conversation_id"] == convo_id and line["character_id"] == character_id:
-            numLines += 1
-            
-    #print("adding lines- charID:",character_id," convoID: ",convo_id," numLines: ",numLines)
-    return numLines
-
-def getCharacterNumLines(id: str):
-    numLines = 0
-    for convo in db.conversations:
-        if convo["character1_id"] == id or convo["character2_id"] == id:
-            numLines += getNumLinesOfConvo(convo["conversation_id"],id)
-    return numLines
 
 
 def getCharacterSimple(character):
@@ -190,7 +197,7 @@ def getCharacterSimple(character):
         "character_id":character["character_id"],
         "character":character["name"],
         "movie":getMovieTitle(character["movie_id"]),
-        "number_of_lines":getCharacterNumLines(character["character_id"])
+        "number_of_lines":getNumLinesOfCharacter(character["character_id"])
     }
     return json
 
