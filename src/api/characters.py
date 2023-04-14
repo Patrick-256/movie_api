@@ -29,7 +29,7 @@ def getTotalNumLinesOfConvo(id: str):
     numLines = 0
 
     for line in db.lines:
-        if line["conversation_id"] == id:
+        if db.lines[line][2] == id:
             numLines += 1
     
     return numLines
@@ -37,47 +37,46 @@ def getTotalNumLinesOfConvo(id: str):
 def getCharacterFromID(id: str):
     #returns the character of the given character id
     for character in db.characters:
-        if character["character_id"] == id:
+        if character == id:
             return character
     return None
 
 
 
-def getMovieTitle(id: str):
-    for movie in db.movies:
-        if movie["movie_id"] == id:
-            #print("movie found")
-            return movie["title"]
-    #print("movie not found :(")
-    return None
+def getMovieTitle(id: int):
+    movie = db.movies.get(id)      
+    #print("movie found")
+    return movie[0]
 
-def getCharacterGender(character):
-    if character["gender"] == "M":
+
+def getCharacterGender(value):
+    if value == "M":
         return "M"
-    if character["gender"] == "F":
+    if value == "F":
         return "F"
     return None
 
-def getMostLines(id: str):
-    # highLineCount = 0
-    # mostTalkedId = None
-    # currentConvoCount = 0
-    # currentTalkedId = None
-
+def getMostLines(id: int):
     characterIDsAlreadyConsidered = []
     topCharacterLines = []
 
     for convo in db.conversations:
-        if convo["character1_id"] == id or convo["character2_id"] == id:
+        
+        # print(convo)
+        # print(db.conversations[convo])
+        # print(db.conversations[convo][0])
+        # print(id)
+        # print(db.conversations[convo][1])
+        if db.conversations[convo][0] == id or db.conversations[convo][1] == id:
             #found a convo with our character, find out who they talked to
             charTalkedToId = None
-            if convo["character1_id"] == id:
-                charTalkedToId = convo["character2_id"]
+            if db.conversations[convo][0] == id:
+                charTalkedToId = db.conversations[convo][1]
             else:
-                charTalkedToId = convo["character1_id"]
+                charTalkedToId = db.conversations[convo][0]
 
             characterIDsAlreadyConsidered.insert(0,charTalkedToId)
-            topCharacterLines.insert(0,getTotalNumLinesOfConvo(convo["conversation_id"]))
+            topCharacterLines.insert(0,getTotalNumLinesOfConvo(convo))
 
     #aggregate the arrays
     characterIds_agg = [-1]
@@ -129,12 +128,12 @@ def getMostLines(id: str):
 
     json = [] 
     for i in range(len(characterIds_agg)-1):
-        character = getCharacterFromID(characterIds_agg[i])
+        # character = getCharacterFromID(characterIds_agg[i])
           
         characterConvo = {
             "character_id":int(characterIds_agg[i]),
-            "character":character["name"],
-            "gender":getCharacterGender(character),
+            "character":db.characters[characterIds_agg[i]][0],
+            "gender":getCharacterGender(db.characters[characterIds_agg[i]][2]),
             "number_of_lines_together":int(charLines_agg[i])
         }
         json.append(characterConvo)
@@ -144,7 +143,7 @@ def getMostLines(id: str):
 
 
 @router.get("/characters/{id}", tags=["characters"])
-def get_character(id: str):
+def get_character(id: int):
     """
     This endpoint returns a single character by its identifier. For each character
     it returns:
@@ -167,16 +166,17 @@ def get_character(id: str):
 
     json = None
 
-    for character in db.characters:
-        if character["character_id"] == id:
-            #print("character found")
-            json = {
-              "character_id":int(id),
-              "character":character["name"],
-              "movie":getMovieTitle(character["movie_id"]),
-              "gender":getCharacterGender(character),
-              "top_conversations":getMostLines(id)
-            }
+
+    character = db.characters.get(int(id))
+    #print("character found")
+    if character is not None:
+        json = {
+            "character_id":int(id),
+            "character":character[0],
+            "movie":getMovieTitle(character[1]),
+            "gender":character[2],
+            "top_conversations":getMostLines(int(id))
+        }
 
     if json is None:
         raise HTTPException(status_code=404, detail="character not found.")

@@ -7,25 +7,38 @@ import csv
 print("reading movies")
 
 with open("movies.csv", mode="r", encoding="utf8") as csv_file:
-    movies = [
-        {k: v for k, v in row.items()}
-        for row in csv.DictReader(csv_file, skipinitialspace=True)
-    ]
+    csv_reader = csv.DictReader(csv_file)
+    movies = {}
+    for row in csv_reader:
+        key = int(row["movie_id"])
+        values = [row["title"],row["year"],row["imdb_rating"],row["imdb_votes"],row["raw_script_url"]]
+        movies[key] = values
+    
 
 with open("characters.csv", mode="r", encoding="utf8") as csv_file:
-    characters = [
-        {k: v for k, v in row.items()}
-        for row in csv.DictReader(csv_file, skipinitialspace=True)
-    ]
+    csv_reader = csv.DictReader(csv_file)
+    characters = {}
+    for row in csv_reader:
+        key = int(row["character_id"])
+        values = [row["name"],int(row["movie_id"]),row["gender"],row["age"]]
+        characters[key] = values
+    
+    #print(characters[10])
 
 with open("conversations.csv", mode="r", encoding="utf8") as csv_file:
-    conversations = [
-        {k: v for k, v in row.items()}
-        for row in csv.DictReader(csv_file, skipinitialspace=True)
-    ]
+    csv_reader = csv.DictReader(csv_file)
+    conversations = {}
+    for row in csv_reader:
+        key = int(row["conversation_id"])
+        values = [int(row["character1_id"]),int(row["character2_id"]),int(row["movie_id"])]
+        conversations[key] = values
+    
+    #print(conversations)
 
 with open("lines.csv", mode="r", encoding="utf8") as csv_file:
-    lines = [
-        {k: v for k, v in row.items()}
-        for row in csv.DictReader(csv_file, skipinitialspace=True)
-    ]
+    csv_reader = csv.DictReader(csv_file)
+    lines = {}
+    for row in csv_reader:
+        key = int(row["line_id"])
+        values = [int(row["character_id"]),int(row["movie_id"]),int(row["conversation_id"]),row["line_sort"],row["line_text"]]
+        lines[key] = values
