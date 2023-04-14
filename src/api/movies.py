@@ -4,43 +4,47 @@ from src import database as db
 
 router = APIRouter()
 
-def getNumLinesOfConvo(convo_id: str,character_id: str):
+def getNumLinesOfConvo(convo_id: int,character_id: int):
     #returns how many lines a certain conversation is
     numLines = 0
 
     for line in db.lines:
-        if line["conversation_id"] == convo_id and line["character_id"] == character_id:
+        if db.lines[line][2] == convo_id and db.lines[line][0] == character_id:
             numLines += 1
             
     # print("adding lines- charID:",character_id," convoID: ",convo_id," numLines: ",numLines)
     return numLines
 
-def getNumLinesOfCharacter(id: str):
+def getNumLinesOfCharacter(id: int):
     characterNumLines = 0
     #find out what convos the character is a part of
     for convo in db.conversations:
-        if convo["character1_id"] == id or convo["character2_id"] == id:
+        if db.conversations[convo][0] == id or db.conversations[convo][1] == id:
             #character was part of this conversation
-            characterNumLines += getNumLinesOfConvo(convo["conversation_id"],id)
+            characterNumLines += getNumLinesOfConvo(convo,id)
     return characterNumLines
 
 
-def getCharacterName(id: str):
-    for character in db.characters:
-        if character["character_id"] == id:
-            return character["name"]
+def getCharacterName(id: int):
+    print(id)
+    print(db.characters[int(id)])
+    name = db.characters[id][0]
+
+    if name is not None:
+        return name
     return None
 
-def getTop5charactersFromMovie(id: str):
+def getTop5charactersFromMovie(movie_id: int):
     #look at convos for the given movie id
     #keep track of the top 5 character ids with the most occurences
     characterIds = [-1]
     characterLineCounts = [-1]
 
     for character in db.characters:
-        if character["movie_id"] == id:
-            characterIds.insert(0,character["character_id"])
-            characterLineCounts.insert(0,getNumLinesOfCharacter(character["character_id"]))
+        # print(character," ",db.characters[character][1])
+        if int(db.characters[character][1]) == int(movie_id):
+            characterIds.insert(0,character)
+            characterLineCounts.insert(0,getNumLinesOfCharacter(character))
 
     #aggregate same characters
     characterIds_agg = [-1]
@@ -62,9 +66,9 @@ def getTop5charactersFromMovie(id: str):
         # #print(characterIds_agg)
         # #print(characterLineCounts_agg)
 
-    #print("done aggregating")
-    #print(characterIds_agg)
-    #print(characterLineCounts_agg)
+    print("done aggregating")
+    print(characterIds_agg)
+    print(characterLineCounts_agg)
     #sort them
     sortComplete = False
     numOfSwaps = 0
@@ -118,15 +122,15 @@ def get_movie(movie_id: str):
 
     """
     json = None
+    movie = db.movies.get(int(movie_id))
 
-    for movie in db.movies:
-        if movie["movie_id"] == movie_id:
-            #print("movie found")
-            json = {
-                "movie_id":int(movie_id),
-                "title":movie["title"],
-                "top_characters":getTop5charactersFromMovie(movie_id)
-            }
+    if movie is not None:
+        print("the movie: ",movie)
+        json = {
+            "movie_id":int(movie_id),
+            "title":movie[0],
+            "top_characters":getTop5charactersFromMovie(int(movie_id))
+        }
 
     
 

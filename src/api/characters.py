@@ -174,7 +174,7 @@ def get_character(id: int):
             "character_id":int(id),
             "character":character[0],
             "movie":getMovieTitle(character[1]),
-            "gender":character[2],
+            "gender":getCharacterGender(character[2]),
             "top_conversations":getMostLines(int(id))
         }
 
