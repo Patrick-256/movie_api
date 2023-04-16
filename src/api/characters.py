@@ -262,11 +262,10 @@ def list_characters(
                 else: break
     else:
         for character in sortedCharacters:
-            if name in character["name"]:
+            if name in sortedCharacters[character]["character"]:
                 if limit > 0:
                     jsonResults.append(sortedCharacters[character])
                     limit -= 1
                 else: break
 
-    #now invert the list to show in proper order
     return jsonResults

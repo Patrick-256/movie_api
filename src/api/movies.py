@@ -37,12 +37,16 @@ def getTop5charactersFromMovie(movie_id: int):
     characterIds = [-1]
     characterLineCounts = [-1]
 
-    for character in db.characters:
-        # print(character," ",db.characters[character][1])
-        if int(db.characters[character][1]) == int(movie_id):
-            characterIds.insert(0,character)
-            characterLineCounts.insert(0,getNumLinesOfCharacter(character))
+    # for character in db.characters:
+    #     # print(character," ",db.characters[character][1])
+    #     if int(db.characters[character][1]) == int(movie_id):
+    #         characterIds.insert(0,character)
+    #         characterLineCounts.insert(0,getNumLinesOfCharacter(character))
 
+    for line in db.lines:
+        if db.lines[line][1] == movie_id:
+            characterIds.append(db.lines[line][0])
+            characterLineCounts.append(1)
 
     #aggregate same characters
     characterIds_agg = [-1]
