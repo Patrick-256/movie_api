@@ -4,26 +4,6 @@ from src import database as db
 
 router = APIRouter()
 
-def getNumLinesOfConvo(convo_id: int,character_id: int):
-    #returns how many lines a certain conversation is
-    numLines = 0
-
-    for line in db.lines:
-        if db.lines[line][2] == convo_id and db.lines[line][0] == character_id:
-            numLines += 1
-            
-    # print("adding lines- charID:",character_id," convoID: ",convo_id," numLines: ",numLines)
-    return numLines
-
-def getNumLinesOfCharacter(id: int):
-    characterNumLines = 0
-    #find out what convos the character is a part of
-    for convo in db.conversations:
-        if db.conversations[convo][0] == id or db.conversations[convo][1] == id:
-            #character was part of this conversation
-            characterNumLines += getNumLinesOfConvo(convo,id)
-    return characterNumLines
-
 
 def getCharacterName(id: int):
     name = db.characters[id][0]
@@ -36,12 +16,6 @@ def getTop5charactersFromMovie(movie_id: int):
     #keep track of the top 5 character ids with the most occurences
     characterIds = [-1]
     characterLineCounts = [-1]
-
-    # for character in db.characters:
-    #     # print(character," ",db.characters[character][1])
-    #     if int(db.characters[character][1]) == int(movie_id):
-    #         characterIds.insert(0,character)
-    #         characterLineCounts.insert(0,getNumLinesOfCharacter(character))
 
     for line in db.lines:
         if db.lines[line][1] == movie_id:
@@ -132,8 +106,6 @@ def get_movie(movie_id: str):
             "top_characters":getTop5charactersFromMovie(int(movie_id))
         }
 
-    
-
     if json is None:
         raise HTTPException(status_code=404, detail="movie not found.")
 
@@ -144,16 +116,6 @@ class movie_sort_options(str, Enum):
     movie_title = "movie_title"
     year = "year"
     rating = "rating"
-
-def getMovie(movie):
-    json = {
-        "movie_id":movie["movie_id"],
-        "movie_title":movie["title"],
-        "year":movie["year"],
-        "imbd_rating":movie["imdb_rating"],
-        "imbd_votes":movie["imdb_votes"]
-    }
-    return json
 
 # Add get parameters
 @router.get("/movies/", tags=["movies"])

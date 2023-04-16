@@ -14,34 +14,8 @@ def getTotalNumLinesOfConvo(id: str):
     
     return numLines
 
-def getCharacterNumLinesOfConvo(convo_id: str,character_id: str):
-    #returns how many lines a certain character had in a conversation
-    numLines = 0
-
-    for line in db.lines:
-        if db.lines[line][2] == convo_id and db.lines[line][0] == character_id:
-            numLines += 1
-    return numLines
-
-def getNumLinesOfCharacter(id: str):
-    characterNumLines = 0
-    #find out what convos the character is a part of
-    for convo in db.conversations:
-        if db.conversations[convo][0] == id or db.conversations[convo][1] == id:
-            #character was part of this conversation
-            characterNumLines += getCharacterNumLinesOfConvo(convo,id)
-    return characterNumLines
-
-def getCharacterFromID(id: str):
-    #returns the character of the given character id
-    for character in db.characters:
-        if character == id:
-            return character
-    return None
-
 def getMovieTitle(id: int):
     movie = db.movies.get(id)      
-    #print("movie found")
     return movie[0]
 
 def getCharacterGender(value):
@@ -88,8 +62,6 @@ def getMostLines(id: int):
     # print("original line array:   ",topCharacterLines)
     # print("aggregated line array: ",charLines_agg)
 
-
-
     #sort arrays based on line count
     sortingDone = False
     numOfSwaps = 0
@@ -113,9 +85,7 @@ def getMostLines(id: int):
 
 
     json = [] 
-    for i in range(len(characterIds_agg)-1):
-        # character = getCharacterFromID(characterIds_agg[i])
-          
+    for i in range(len(characterIds_agg)-1):      
         characterConvo = {
             "character_id":int(characterIds_agg[i]),
             "character":db.characters[characterIds_agg[i]][0],
@@ -175,17 +145,6 @@ class character_sort_options(str, Enum):
     movie = "movie"
     number_of_lines = "number_of_lines"
 
-
-
-
-def getCharacterSimple(character_id: int):
-    json = {
-        "character_id":character_id,
-        "character":db.characters[character_id][0],
-        "movie":getMovieTitle(db.characters[character_id][1]),
-        "number_of_lines":getNumLinesOfCharacter(character_id)
-    }
-    return json
 
 
 @router.get("/characters/", tags=["characters"])
@@ -262,10 +221,13 @@ def list_characters(
                 else: break
     else:
         for character in sortedCharacters:
-            if name in sortedCharacters[character]["character"]:
+            if offset > 0:
+                offset -= 1
+            else:
                 if limit > 0:
-                    jsonResults.append(sortedCharacters[character])
-                    limit -= 1
+                    if name.upper() in sortedCharacters[character]["character"]:            
+                        jsonResults.append(sortedCharacters[character])
+                        limit -= 1
                 else: break
 
     return jsonResults
