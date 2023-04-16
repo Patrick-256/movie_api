@@ -11,7 +11,7 @@ with open("movies.csv", mode="r", encoding="utf8") as csv_file:
     movies = {}
     for row in csv_reader:
         key = int(row["movie_id"])
-        values = [row["title"],row["year"],row["imdb_rating"],row["imdb_votes"],row["raw_script_url"]]
+        values = [row["title"],row["year"],float(row["imdb_rating"]),int(row["imdb_votes"]),row["raw_script_url"]]
         movies[key] = values
     
     

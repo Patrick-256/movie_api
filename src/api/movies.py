@@ -181,24 +181,48 @@ def list_movies(
     maximum number of results to return. The `offset` query parameter specifies the
     number of results to skip before returning results.
     """
-    
-    json = []
+    #step 0: set up movie dictionary
+    simpleMovies = {}
+    for movie in db.movies:
+        key = movie
+        simpleMovie = {
+            "movie_id":movie,
+            "movie_title":db.movies[movie][0],
+            "year":db.movies[movie][1],
+            "imdb_rating":db.movies[movie][2],
+            "imdb_votes":db.movies[movie][3],
+        }
+        simpleMovies[key] = simpleMovie
+
+    #step 1: do the sorting
+    sortedMovies = {}
+    if sort == "movie_title":
+        sortedMovies = {k: v for k, v in sorted(simpleMovies.items(), key=lambda item: item[1]["movie_title"])}
+    if sort == "year":
+        sortedMovies = {k: v for k, v in sorted(simpleMovies.items(), key=lambda item: item[1]["year"])}
+    if sort == "rating":
+        sortedMovies = {k: v for k, v in sorted(simpleMovies.items(), key=lambda item: item[1]["imdb_rating"], reverse=True)}
+
+    print(sortedMovies)
+
+    #step 2: do the picking
+    jsonResults = []
 
     if name == "":
         #no name provided
-        for movie in db.movies:
+        for movie in sortedMovies:
             if offset > 0:
                 offset -= 1
             else:
                 if limit > 0:
-                    json.insert(0,getMovie(movie))
+                    jsonResults.append(sortedMovies[movie])
                     limit -= 1
     else:
-        for movie in db.movies:
-            if name in movie["title"]:
+        for movie in sortedMovies:
+            if name in sortedMovies[movie]["movie_title"]:
                 if limit > 0:
-                    json.insert(0,getMovie(movie))
+                    jsonResults.append(sortedMovies[movie])
                     limit -= 1
 
-    return json
+    return jsonResults
 
