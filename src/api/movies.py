@@ -169,7 +169,7 @@ def list_movies(
     if sort == "rating":
         sortedMovies = {k: v for k, v in sorted(simpleMovies.items(), key=lambda item: item[1]["imdb_rating"], reverse=True)}
 
-    print(sortedMovies)
+    # print(sortedMovies)
 
     #step 2: do the picking
     jsonResults = []

@@ -6,19 +6,20 @@ import csv
 
 print("reading movies")
 
+movies = {}
 with open("movies.csv", mode="r", encoding="utf8") as csv_file:
     csv_reader = csv.DictReader(csv_file)
-    movies = {}
+    
     for row in csv_reader:
         key = int(row["movie_id"])
         values = [row["title"],row["year"],float(row["imdb_rating"]),int(row["imdb_votes"]),row["raw_script_url"]]
         movies[key] = values
     
     
-
+characters = {}
 with open("characters.csv", mode="r", encoding="utf8") as csv_file:
     csv_reader = csv.DictReader(csv_file)
-    characters = {}
+    
     for row in csv_reader:
         key = int(row["character_id"])
         values = [row["name"],int(row["movie_id"]),row["gender"],row["age"]]
@@ -26,9 +27,10 @@ with open("characters.csv", mode="r", encoding="utf8") as csv_file:
     
     #print(characters[10])
 
+conversations = {}
 with open("conversations.csv", mode="r", encoding="utf8") as csv_file:
     csv_reader = csv.DictReader(csv_file)
-    conversations = {}
+    
     for row in csv_reader:
         key = int(row["conversation_id"])
         values = [int(row["character1_id"]),int(row["character2_id"]),int(row["movie_id"])]
@@ -36,10 +38,36 @@ with open("conversations.csv", mode="r", encoding="utf8") as csv_file:
     
     #print(conversations)
 
+lines = {}
 with open("lines.csv", mode="r", encoding="utf8") as csv_file:
     csv_reader = csv.DictReader(csv_file)
-    lines = {}
+    
     for row in csv_reader:
         key = int(row["line_id"])
         values = [int(row["character_id"]),int(row["movie_id"]),int(row["conversation_id"]),row["line_sort"],row["line_text"]]
         lines[key] = values
+
+#build lines
+def findSpokenTo(spokenBy_id:int,conversation_id):
+    char1 = conversations[conversation_id][0]
+    char2 = conversations[conversation_id][1]
+
+    spokenToChar_id = char1
+    if spokenToChar_id == spokenBy_id:
+        spokenToChar_id = char2
+    return spokenToChar_id
+
+verbosLines = {}
+for line in lines:
+    key = line
+    verbosLine = {
+        "line_id":line,
+        "spoken_by":characters[lines[line][0]][0],
+        "movie":movies[lines[line][1]][0],
+        "spoken_to":characters[findSpokenTo(lines[line][0],lines[line][2])][0],
+        "line_text":lines[line][4],
+    }
+    verbosLines[key] = verbosLine
+
+print("hello")
+print(verbosLines[50])
