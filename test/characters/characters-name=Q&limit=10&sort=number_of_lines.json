@@ -1,0 +1,53 @@
+[
+    {
+        "character_id": 3341,
+        "character": "QUAID",
+        "movie": "total recall",
+        "number_of_lines": 181
+    },
+    {
+        "character_id": 6553,
+        "character": "QUINCE",
+        "movie": "meet joe black",
+        "number_of_lines": 70
+    },
+    {
+        "character_id": 1652,
+        "character": "QUINT",
+        "movie": "jaws",
+        "number_of_lines": 68
+    },
+    {
+        "character_id": 4551,
+        "character": "QUALEN",
+        "movie": "cliffhanger",
+        "number_of_lines": 54
+    },
+    {
+        "character_id": 7923,
+        "character": "LT. QUIFFER",
+        "movie": "dr. strangelove or: how i learned to stop worrying and love the bomb",
+        "number_of_lines": 28
+    },
+    {
+        "character_id": 2992,
+        "character": "BORG QUEEN",
+        "movie": "star trek: first contact",
+        "number_of_lines": 22
+    },
+    {
+        "character_id": 1165,
+        "character": "QUINTUS",
+        "movie": "gladiator",
+        "number_of_lines": 19
+    },
+    {
+        "character_id": 1047,
+        "character": "QUELLEK",
+        "movie": "galaxy quest",
+        "number_of_lines": 17
+    },
+    {
+        "character_id": 8567,
+        "character": "MARQUEZ",
+        "movie":"traffic","number_of_lines":15},{"character_id":3723,"character":"QUEEN","movie":"antz","number_of_lines":13}]

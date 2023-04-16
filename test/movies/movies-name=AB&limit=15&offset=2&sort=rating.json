@@ -1,0 +1,44 @@
+[
+    {
+        "movie_id": 232,
+        "movie_title": "the abyss",
+        "year": "1989",
+        "imdb_rating": 7.6,
+        "imdb_votes": 51699
+    },
+    {
+        "movie_id": 492,
+        "movie_title": "who framed roger rabbit",
+        "year": "1988",
+        "imdb_rating": 7.6,
+        "imdb_votes": 54375
+    },
+    {
+        "movie_id": 590,
+        "movie_title": "unbreakable",
+        "year": "2000",
+        "imdb_rating": 7.3,
+        "imdb_votes": 98767
+    },
+    {
+        "movie_id": 217,
+        "movie_title": "there's something about mary",
+        "year": "1998",
+        "imdb_rating": 7.2,
+        "imdb_votes": 97546
+    },
+    {
+        "movie_id": 0,
+        "movie_title": "10 things i hate about you",
+        "year": "1999",
+        "imdb_rating": 6.9,
+        "imdb_votes": 62847
+    },
+    {
+        "movie_id": 102,
+        "movie_title": "intolerable cruelty",
+        "year": "2003",
+        "imdb_rating": 6.4,
+        "imdb_votes": 36739
+    }
+]

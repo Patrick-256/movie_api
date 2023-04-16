@@ -221,13 +221,13 @@ def list_characters(
                 else: break
     else:
         for character in sortedCharacters:
-            if offset > 0:
-                offset -= 1
-            else:
-                if limit > 0:
-                    if name.upper() in sortedCharacters[character]["character"]:            
+            if name.upper() in sortedCharacters[character]["character"]: 
+                if offset > 0:
+                    offset -= 1
+                else:
+                    if limit > 0:
                         jsonResults.append(sortedCharacters[character])
                         limit -= 1
-                else: break
+                    else: break
 
     return jsonResults

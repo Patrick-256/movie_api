@@ -40,6 +40,16 @@ def test_sort_filter():
     ) as f:
         assert response.json() == json.load(f)
 
+def test_sort_filter1():
+    response = client.get("/movies/?name=AB&limit=15&offset=2&sort=rating")
+    assert response.status_code == 200
+
+    with open(
+        "test/movies/movies-name=AB&limit=15&offset=2&sort=rating.json",
+        encoding="utf-8",
+    ) as f:
+        assert response.json() == json.load(f)
+
 
 def test_404():
     response = client.get("/movies/1")

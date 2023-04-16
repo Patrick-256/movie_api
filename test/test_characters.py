@@ -42,6 +42,18 @@ def test_sort_filter():
     ) as f:
         assert response.json() == json.load(f)
 
+def test_sort_filter1():
+    response = client.get(
+        "/characters/?name=Q&limit=10&sort=number_of_lines"
+    )
+    assert response.status_code == 200
+
+    with open(
+        "test/characters/characters-name=Q&limit=10&sort=number_of_lines.json",
+        encoding="utf-8",
+    ) as f:
+        assert response.json() == json.load(f)
+
 
 def test_404():
     response = client.get("/characters/400")

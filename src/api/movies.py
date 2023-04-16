@@ -185,10 +185,13 @@ def list_movies(
                     limit -= 1
     else:
         for movie in sortedMovies:
-            if name in sortedMovies[movie]["movie_title"]:
-                if limit > 0:
-                    jsonResults.append(sortedMovies[movie])
-                    limit -= 1
+            if name.lower() in sortedMovies[movie]["movie_title"]:
+                if offset > 0:
+                    offset -= 1
+                else:
+                    if limit > 0:
+                        jsonResults.append(sortedMovies[movie])
+                        limit -= 1
 
     return jsonResults
 
