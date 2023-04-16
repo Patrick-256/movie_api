@@ -26,10 +26,7 @@ def getNumLinesOfCharacter(id: int):
 
 
 def getCharacterName(id: int):
-    print(id)
-    print(db.characters[int(id)])
     name = db.characters[id][0]
-
     if name is not None:
         return name
     return None
@@ -46,12 +43,11 @@ def getTop5charactersFromMovie(movie_id: int):
             characterIds.insert(0,character)
             characterLineCounts.insert(0,getNumLinesOfCharacter(character))
 
+
     #aggregate same characters
     characterIds_agg = [-1]
     characterLineCounts_agg = [-1]
 
-    #print(characterIds)
-    #print(characterLineCounts)
     for i in range(len(characterIds)):
         #check if its already in agg array
         idFound = False

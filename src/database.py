@@ -14,6 +14,7 @@ with open("movies.csv", mode="r", encoding="utf8") as csv_file:
         values = [row["title"],row["year"],row["imdb_rating"],row["imdb_votes"],row["raw_script_url"]]
         movies[key] = values
     
+    
 
 with open("characters.csv", mode="r", encoding="utf8") as csv_file:
     csv_reader = csv.DictReader(csv_file)
