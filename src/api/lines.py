@@ -123,3 +123,48 @@ def list_lines(
                             else: break
 
     return jsonResults
+
+
+@router.get("/movie_lines/", tags=["lines"])
+def list_lines(
+    movie_title:str,
+    limit: int = 50,
+    offset: int = 0
+):
+    """
+    This endpoint returns a list of lines from a given movie. For each line
+    it returns:
+    * `line_id`: the internal id of the character. Can be used to query the
+      `/line/{line_id}` endpoint.
+    * `spoken_by`: The name of the character who spoke the line.
+    * `movie`: The movie the line is from.
+    * `spoken_to`: The name of the character who the line was spoken to.
+    * `line_text`: The content of the line
+
+    The `limit` and `offset` query
+    parameters are used for pagination. The `limit` query parameter specifies the
+    maximum number of results to return. The `offset` query parameter specifies the
+    number of results to skip before returning results.
+    """
+    #step 1: gather all the lines that belong to the provided movie
+    linesInMovie = {}
+    for line in db.verbosLines:
+        if db.verbosLines[line]["movie"] == movie_title:
+            key = db.verbosLines[line]["line_id"]
+            value = db.verbosLines[line]
+            linesInMovie[key] = value
+    
+    if len(linesInMovie) == 0:
+        raise HTTPException(status_code=404, detail="movie not found.")
+
+    #step 2: do the picking
+    jsonResults = []
+    for line in linesInMovie:
+        if offset > 0:
+            offset -= 1
+        else:
+            if limit > 0:
+                jsonResults.append(linesInMovie[line])
+                limit -= 1
+            else: break
+    return jsonResults
