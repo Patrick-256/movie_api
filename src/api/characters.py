@@ -1,5 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from enum import Enum
+from collections import Counter
+
+from fastapi.params import Query
 from src import database as db
 
 router = APIRouter()
@@ -121,8 +124,6 @@ def get_character(id: int):
     """
 
     json = None
-
-
     character = db.characters.get(int(id))
     #print("character found")
     if character is not None:
@@ -150,8 +151,8 @@ class character_sort_options(str, Enum):
 @router.get("/characters/", tags=["characters"])
 def list_characters(
     name: str = "",
-    limit: int = 50,
-    offset: int = 0,
+    limit: int = Query(50, ge=1, le=250),
+    offset: int = Query(0, ge=0),
     sort: character_sort_options = character_sort_options.character,
 ):
     """
