@@ -41,9 +41,9 @@ def getTop5charactersFromMovie(movie_id: int):
         # #print(characterIds_agg)
         # #print(characterLineCounts_agg)
 
-    print("done aggregating")
-    print(characterIds_agg)
-    print(characterLineCounts_agg)
+    # print("done aggregating")
+    # print(characterIds_agg)
+    # print(characterLineCounts_agg)
     #sort them
     sortComplete = False
     numOfSwaps = 0
@@ -100,7 +100,7 @@ def get_movie(movie_id: int):
     movie = db.movies.get(int(movie_id))
 
     if movie is not None:
-        print("the movie: ",movie)
+        # print("the movie: ",movie)
         json = {
             "movie_id":int(movie_id),
             "title":movie[0],
