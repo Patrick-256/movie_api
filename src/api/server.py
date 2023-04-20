@@ -29,6 +29,10 @@ tags_metadata = [
         "name": "lines",
         "description": "Access information on lines.",
     },
+    {
+        "name": "conversations",
+        "description": "POST new conversations",
+    } 
 ]
 
 app = FastAPI(
@@ -44,8 +48,9 @@ app = FastAPI(
 app.include_router(characters.router)
 app.include_router(movies.router)
 app.include_router(lines.router)
-app.include_router(pkg_util.router)
 app.include_router(conversations.router)
+app.include_router(pkg_util.router)
+
 
 
 @app.get("/")
