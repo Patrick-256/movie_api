@@ -44,9 +44,7 @@ def add_conversation(movie_id: int, conversation: ConversationJson):
     print(conversation)
 
     #Step 1: ensure that both characters are part of the movie
-    if db.characters[conversation["character_1_id"]][1] == movie_id and
-       db.characters[conversation["character_2_id"]][1] == movie_id and
-       conversation["character_1_id"] != conversation["character_2_id"]:
+    if db.characters[conversation["character_1_id"]][1] == movie_id and db.characters[conversation["character_2_id"]][1] == movie_id and conversation["character_1_id"] != conversation["character_2_id"]:
         #both characters are in the movie
         print("both characters are in the movie")
         return("both characters are in the movie")
