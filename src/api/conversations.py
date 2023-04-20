@@ -41,15 +41,17 @@ def add_conversation(movie_id: int, conversation: ConversationJson):
     # TODO: Remove the following two lines. This is just a placeholder to show
     # how you could implement persistent storage.
 
-    print(conversation)
+    # print(conversation)
+    response = {"my placeholder response"}
 
     #Step 1: ensure that both characters are part of the movie
     if db.characters[conversation["character_1_id"]][1] == movie_id and db.characters[conversation["character_2_id"]][1] == movie_id and conversation["character_1_id"] != conversation["character_2_id"]:
         #both characters are in the movie
         print("both characters are in the movie")
-        return("both characters are in the movie")
+        response = {"my placeholder response"}
 
         #Step 2: go through the lines and check that the speakers match the characters provided
     else:
         raise HTTPException(status_code=404, detail="One or more characters not found in the referenced movie")
 
+    return response
