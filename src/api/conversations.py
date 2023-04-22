@@ -66,17 +66,25 @@ def add_conversation(movie_id: int, conversation: ConversationJson):
         
         #Step 3: add the conversation to the database
         response = {"made it to step 3 :D"}
-
-        #break out into lines and conversations
-        #determine highest convo ID
         
-        #Test writing to movie_conversations_log.csv
+        #Step 3-1: Add log entry to movie_conversations_log.csv file
+        # get the current date and time
+        now = datetime.now()
+
+        # format the date and time as a string
+        date_time_str = now.strftime("%Y-%m-%d %H:%M:%S")
         print(db.logs)
         db.logs.append({'post_call_time': '2023-04-21 14:44:31', 'movie_id_added_to': 525})
         print(db.logs)
 
         db.upload_new_log()
 
+        #Step 3-2: Add conversation to conversations.csv file
+        #find out what number to give conversation id
+        last_key = list(db.conversations.keys())[-1]
+        db.conversationsCSV.append({"conversation_id":last_key+1, "character1_id":conversation.character_1_id, "character2_id":conversation.character_2_id, "movie_id":movie_id})
+        db.upload_new_conversation()
+        
 
     else:
         raise HTTPException(status_code=404, detail="One or more characters not found in the referenced movie")

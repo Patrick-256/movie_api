@@ -23,17 +23,26 @@ sess = supabase.auth.get_session()
 # You should delete this code for your working example.
 
 # START PLACEHOLDER CODE
+logs = []
+conversationsCSV = []
+linesCSV = []
+
+fileNames = {"movie_conversations_log.csv","conversations.csv","lines.csv"}
 
 # Reading in the log file from the supabase bucket
-log_csv = (
-    supabase.storage.from_("movie-api")
-    .download("movie_conversations_log.csv")
-    .decode("utf-8")
-)
+for fileName in fileNames:
+    log_csv = (
+        supabase.storage.from_("movie-api")
+        .download(fileName)
+        .decode("utf-8")
+    )
 
-logs = []
-for row in csv.DictReader(io.StringIO(log_csv), skipinitialspace=True):
-    logs.append(row)
+    for row in csv.DictReader(io.StringIO(log_csv), skipinitialspace=True):
+        if fileName == "movie_conversations_log.csv": logs.append(row)
+        if fileName == "conversations.csv": conversationsCSV.append(row)
+        if fileName == "lines.csv": linesCSV.append(row)
+
+
 
 
 # Writing to the log file and uploading to the supabase bucket
@@ -46,6 +55,32 @@ def upload_new_log():
     csv_writer.writerows(logs)
     supabase.storage.from_("movie-api").upload(
         "movie_conversations_log.csv",
+        bytes(output.getvalue(), "utf-8"),
+        {"x-upsert": "true"},
+    )
+
+def upload_new_conversation():
+    output = io.StringIO()
+    csv_writer = csv.DictWriter(
+        output, fieldnames=["conversation_id", "character1_id", "character2_id", "movie_id"]
+    )
+    csv_writer.writeheader()
+    csv_writer.writerows(conversationsCSV)
+    supabase.storage.from_("movie-api").upload(
+        "conversations.csv",
+        bytes(output.getvalue(), "utf-8"),
+        {"x-upsert": "true"},
+    )
+
+def upload_new_lines():
+    output = io.StringIO()
+    csv_writer = csv.DictWriter(
+        output, fieldnames=["line_id", "character_id", "movie_id","conversation_id","line_sort","line_text"]
+    )
+    csv_writer.writeheader()
+    csv_writer.writerows(conversationsCSV)
+    supabase.storage.from_("movie-api").upload(
+        "lines.csv",
         bytes(output.getvalue(), "utf-8"),
         {"x-upsert": "true"},
     )
