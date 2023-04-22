@@ -81,10 +81,15 @@ def add_conversation(movie_id: int, conversation: ConversationJson):
 
         #Step 3-2: Add conversation to conversations.csv file
         #find out what number to give conversation id
-        last_key = list(db.conversations.keys())[-1]
-        db.conversationsCSV.append({"conversation_id":last_key+1, "character1_id":conversation.character_1_id, "character2_id":conversation.character_2_id, "movie_id":movie_id})
+        last_convo_key = list(db.conversations.keys())[-1]
+        db.conversationsCSV.append({"conversation_id":last_convo_key+1, "character1_id":conversation.character_1_id, "character2_id":conversation.character_2_id, "movie_id":movie_id})
         db.upload_new_conversation()
-        
+
+        #Step 3-3 Add the lines to the lines.csv file
+        last_line_key = list(db.lines.keys())[-1]
+        for i in range(len(conversation.lines)):
+            db.linesCSV.append({"line_id":last_line_key+1+i, "character_id":conversation.lines[i].character_id, "movie_id":movie_id, "conversation_id":last_convo_key+1, "line_sort":i+1, "line_text":conversation.lines[i].line_text})
+        db.upload_new_lines()
 
     else:
         raise HTTPException(status_code=404, detail="One or more characters not found in the referenced movie")

@@ -78,7 +78,7 @@ def upload_new_lines():
         output, fieldnames=["line_id", "character_id", "movie_id","conversation_id","line_sort","line_text"]
     )
     csv_writer.writeheader()
-    csv_writer.writerows(conversationsCSV)
+    csv_writer.writerows(linesCSV)
     supabase.storage.from_("movie-api").upload(
         "lines.csv",
         bytes(output.getvalue(), "utf-8"),
