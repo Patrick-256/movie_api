@@ -27,6 +27,9 @@ logs = []
 conversationsCSV = []
 linesCSV = []
 
+conversations = {}
+lines = {}
+
 fileNames = {"movie_conversations_log.csv","conversations.csv","lines.csv"}
 
 # Reading in the log file from the supabase bucket
@@ -39,8 +42,16 @@ for fileName in fileNames:
 
     for row in csv.DictReader(io.StringIO(log_csv), skipinitialspace=True):
         if fileName == "movie_conversations_log.csv": logs.append(row)
-        if fileName == "conversations.csv": conversationsCSV.append(row)
-        if fileName == "lines.csv": linesCSV.append(row)
+        if fileName == "conversations.csv": 
+            conversationsCSV.append(row)
+            key = int(row["conversation_id"])
+            values = [int(row["character1_id"]),int(row["character2_id"]),int(row["movie_id"])]
+            conversations[key] = values
+        if fileName == "lines.csv": 
+            linesCSV.append(row)
+            key = int(row["line_id"])
+            values = [int(row["character_id"]),int(row["movie_id"]),int(row["conversation_id"]),row["line_sort"],row["line_text"]]
+            lines[key] = values
 
 
 
@@ -89,13 +100,6 @@ def upload_new_lines():
 # END PLACEHOLDER CODE
 
 
-def try_parse(type, val):
-    try:
-        return type(val)
-    except ValueError:
-        return None
-
-
 movies = {}
 with open("movies.csv", mode="r", encoding="utf8") as csv_file:
     csv_reader = csv.DictReader(csv_file)
@@ -117,25 +121,24 @@ with open("characters.csv", mode="r", encoding="utf8") as csv_file:
     
     #print(characters[10])
 
-conversations = {}
-with open("conversations.csv", mode="r", encoding="utf8") as csv_file:
-    csv_reader = csv.DictReader(csv_file)
+# conversations = {}
+# with open("conversations.csv", mode="r", encoding="utf8") as csv_file:
+#     csv_reader = csv.DictReader(csv_file)
     
-    for row in csv_reader:
-        key = int(row["conversation_id"])
-        values = [int(row["character1_id"]),int(row["character2_id"]),int(row["movie_id"])]
-        conversations[key] = values
+#     for row in csv_reader:
+#         key = int(row["conversation_id"])
+#         values = [int(row["character1_id"]),int(row["character2_id"]),int(row["movie_id"])]
+#         conversations[key] = values
     
-    #print(conversations)
 
-lines = {}
-with open("lines.csv", mode="r", encoding="utf8") as csv_file:
-    csv_reader = csv.DictReader(csv_file)
+# lines = {}
+# with open("lines.csv", mode="r", encoding="utf8") as csv_file:
+#     csv_reader = csv.DictReader(csv_file)
     
-    for row in csv_reader:
-        key = int(row["line_id"])
-        values = [int(row["character_id"]),int(row["movie_id"]),int(row["conversation_id"]),row["line_sort"],row["line_text"]]
-        lines[key] = values
+#     for row in csv_reader:
+#         key = int(row["line_id"])
+#         values = [int(row["character_id"]),int(row["movie_id"]),int(row["conversation_id"]),row["line_sort"],row["line_text"]]
+#         lines[key] = values
 
 #build lines
 def findSpokenTo(spokenBy_id:int,conversation_id):
@@ -148,16 +151,17 @@ def findSpokenTo(spokenBy_id:int,conversation_id):
     return spokenToChar_id
 
 verbosLines = {}
-for line in lines:
-    key = line
-    verbosLine = {
-        "line_id":line,
-        "spoken_by":characters[lines[line][0]][0],
-        "movie":movies[lines[line][1]][0],
-        "spoken_to":characters[findSpokenTo(lines[line][0],lines[line][2])][0],
-        "line_text":lines[line][4],
-    }
-    verbosLines[key] = verbosLine
+def buildVerboseLines():
+    for line in lines:
+        key = line
+        verbosLine = {
+            "line_id":line,
+            "spoken_by":characters[lines[line][0]][0],
+            "movie":movies[lines[line][1]][0],
+            "spoken_to":characters[findSpokenTo(lines[line][0],lines[line][2])][0],
+            "line_text":lines[line][4],
+        }
+        verbosLines[key] = verbosLine
 
-# print("hello")
-# print(verbosLines[50])
+
+buildVerboseLines()

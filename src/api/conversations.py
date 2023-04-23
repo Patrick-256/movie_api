@@ -20,7 +20,6 @@ class ConversationJson(BaseModel):
 
 router = APIRouter()
 
-# def addConversationToCSV():
 
 
 
@@ -74,7 +73,7 @@ def add_conversation(movie_id: int, conversation: ConversationJson):
         # format the date and time as a string
         date_time_str = now.strftime("%Y-%m-%d %H:%M:%S")
         print(db.logs)
-        db.logs.append({'post_call_time': '2023-04-21 14:44:31', 'movie_id_added_to': 525})
+        db.logs.append({'post_call_time': date_time_str, 'movie_id_added_to': 525})
         print(db.logs)
 
         db.upload_new_log()
@@ -83,13 +82,26 @@ def add_conversation(movie_id: int, conversation: ConversationJson):
         #find out what number to give conversation id
         last_convo_key = list(db.conversations.keys())[-1]
         db.conversationsCSV.append({"conversation_id":last_convo_key+1, "character1_id":conversation.character_1_id, "character2_id":conversation.character_2_id, "movie_id":movie_id})
+
+        key = last_convo_key+1
+        values = [conversation.character_1_id,conversation.character_2_id,movie_id]
+        db.conversations[key] = values
+
         db.upload_new_conversation()
 
         #Step 3-3 Add the lines to the lines.csv file
         last_line_key = list(db.lines.keys())[-1]
         for i in range(len(conversation.lines)):
             db.linesCSV.append({"line_id":last_line_key+1+i, "character_id":conversation.lines[i].character_id, "movie_id":movie_id, "conversation_id":last_convo_key+1, "line_sort":i+1, "line_text":conversation.lines[i].line_text})
+
+            #Also add the lines to the dictionary the other endpoints use
+            key = last_line_key+1+i
+            values = [conversation.lines[i].character_id,movie_id,last_convo_key+1,i+1,conversation.lines[i].line_text]
+            db.lines[key] = values
         db.upload_new_lines()
+        db.buildVerboseLines()
+
+        response = last_convo_key+1
 
     else:
         raise HTTPException(status_code=404, detail="One or more characters not found in the referenced movie")
