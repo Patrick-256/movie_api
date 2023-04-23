@@ -15,10 +15,10 @@ def test_get_movie():
         assert response.json() == json.load(f)
 
 def test_get_movie1():
-    response = client.get("/movies/525")
+    response = client.get("/movies/15")
     assert response.status_code == 200
 
-    with open("test/movies/525.json", encoding="utf-8") as f:
+    with open("test/movies/15.json", encoding="utf-8") as f:
         assert response.json() == json.load(f)
 
 

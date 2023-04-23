@@ -1,0 +1,31 @@
+{
+    "movie_id": 15,
+    "title": "aliens",
+    "top_characters": [
+      {
+        "character_id": 237,
+        "character": "RIPLEY",
+        "num_lines": 132
+      },
+      {
+        "character_id": 233,
+        "character": "HUDSON",
+        "num_lines": 50
+      },
+      {
+        "character_id": 230,
+        "character": "BURKE",
+        "num_lines": 38
+      },
+      {
+        "character_id": 231,
+        "character": "GORMAN",
+        "num_lines": 33
+      },
+      {
+        "character_id": 236,
+        "character": "NEWT",
+        "num_lines": 31
+      }
+    ]
+  }
