@@ -50,3 +50,26 @@ def test_add_conversation():
     #     "line_text": "What the hell is convoTestcase14",
     #     },
     # ] 
+
+def test_add_conversation1():
+    client.post(
+        "/movies/267/conversations",
+        headers={},
+        json={
+            "character_1_id": 4020,
+            "character_2_id": 4029,
+            "lines": [
+                {
+                "character_id": 4020,
+                "line_text": "hey hows that assignment going?"
+                },
+                {
+                "character_id": 4029,
+                "line_text": "going alright, ive only attempted to set up the test cases 17 times"
+                }
+            ]
+        })
+    
+    response = client.get("/lines/?line_text=attempted to set up the test cases 17 times")
+    assert response.status_code == 200
+    assert response.json != []
