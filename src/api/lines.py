@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from enum import Enum
 from src import database as db
+import sqlalchemy
+from sqlalchemy import outerjoin
 
 router = APIRouter()
 
@@ -17,15 +19,65 @@ def get_line(id: int):
     * `line_text`: The content of the line
     """
 
-    line = None
-    line = db.verbosLines.get(int(id))
-    if line is not None:
-        return line
+    line_Query = (
+        sqlalchemy.select(
+            db.lines.c.line_id,
+            db.lines.c.character_id,
+            db.lines.c.movie_id,
+            db.lines.c.conversation_id,
+            db.lines.c.line_text,
+            db.movies.c.title.label("movie"),
+            db.characters.c.name.label("spoken_by"),
+            db.conversations.c.character1_id.label("convo_char1"),
+            db.conversations.c.character2_id.label("convo_char2"),
+            
+        )
+        .select_from(
+            db.lines
+            .join(db.characters, db.lines.c.character_id == db.characters.c.character_id)
+            .join(db.movies, db.lines.c.movie_id == db.movies.c.movie_id)
+            .join(db.conversations, db.lines.c.conversation_id == db.conversations.c.conversation_id)
+        )
+        .where(db.lines.c.line_id == id)
+    )
 
-    if line is None:
-        raise HTTPException(status_code=404, detail="line not found.")
 
-    return line
+
+    with db.engine.connect() as conn:
+        line_result = conn.execute(line_Query)
+        line = line_result.fetchone()
+
+        spoken_to_character_id = None
+        #determine the character spoken_to id
+        if line.character_id == line.convo_char1:
+            spoken_to_character_id = line.convo_char2
+        else:
+            spoken_to_character_id = line.convo_char1
+
+        spoken_to_character_Query = (
+            sqlalchemy.select(
+                db.characters.c.name
+            )
+            .where(db.characters.c.character_id == spoken_to_character_id)
+        )
+        spoken_to_char_result = conn.execute(spoken_to_character_Query)
+        spoken_to_char = spoken_to_char_result.fetchone()
+
+        if line is None:
+            raise HTTPException(status_code=404, detail="line not found.")
+        
+        res_json = {
+            "line_id": line.line_id,
+            # "char_id": line.character_id,
+            "spoken_by": line.spoken_by,
+            "movie": line.movie,
+            # "spoken_to?_1": line.convo_char1,
+            # "spoken_to?_2": line.convo_char2,
+            "spoken_to": spoken_to_char.name,
+            "line_text": line.line_text,
+        }
+
+        return res_json
 
 class line_sort_options(str, Enum):
     spoken_by = "spoken_by"
@@ -66,64 +118,83 @@ def list_lines(
     number of results to skip before returning results.
     """
 
-    #step 1: do the sorting
-    sortedLines = {}
-    if sort == "spoken_by":
-        sortedLines = {k: v for k, v in sorted(db.verbosLines.items(), key=lambda item: item[1]["spoken_by"])}
-    if sort == "movie":
-        sortedLines = {k: v for k, v in sorted(db.verbosLines.items(), key=lambda item: item[1]["movie"])}
-    if sort == "line_text":
-        sortedLines = {k: v for k, v in sorted(db.verbosLines.items(), key=lambda item: item[1]["line_text"])}
+    if sort is line_sort_options.spoken_by:
+        order_by = (db.lines.c.character_id == db.characters.c.character_id)
+    elif sort is line_sort_options.movie:
+        order_by = (db.movies.c.movie_id == db.lines.c.movie_id)
+    elif sort is line_sort_options.line_text:
+        order_by = db.lines.c.line_text
+    else:
+        assert False
 
-    #step 2: do the picking
-    jsonResults =  []
+    lines_Query = (
+        sqlalchemy.select(
+            db.lines.c.line_id,
+            db.lines.c.character_id,
+            db.lines.c.movie_id,
+            db.lines.c.conversation_id,
+            db.lines.c.line_text,
+            db.movies.c.title.label("movie"),
+            db.characters.c.name.label("spoken_by"),
+            db.conversations.c.character1_id.label("convo_char1"),
+            db.conversations.c.character2_id.label("convo_char2"),  
+        )
+        .select_from(db.lines
+            .join(db.characters, db.lines.c.character_id == db.characters.c.character_id)
+            .join(db.movies, db.lines.c.movie_id == db.movies.c.movie_id)
+            .join(db.conversations, db.lines.c.conversation_id == db.conversations.c.conversation_id)
+        )
+        .limit(limit)
+        .offset(offset)
+        .order_by(order_by, db.movies.c.movie_id)
+    )
 
-    if spoken_by == "":
-        if line_text == "":
-            #list out the first 50 lines
-            for line in sortedLines:
-                if offset > 0:
-                    offset -= 1
-                else:
-                    if limit > 0:
-                        jsonResults.append(sortedLines[line])
-                        limit -= 1
-                    else: break
-        else:
-            for line in sortedLines:
-                if line_text in sortedLines[line]["line_text"]:
-                    if offset > 0:
-                        offset -= 1
-                    else:
-                        if limit > 0:
-                            jsonResults.append(sortedLines[line])
-                            limit -= 1
-                        else: break
-    else: #looking for a line spoken by a particular character
-        if line_text == "":
-            for line in sortedLines:
-                if spoken_by.upper() in sortedLines[line]["spoken_by"]: 
-                    if offset > 0:
-                        offset -= 1
-                    else:
-                        if limit > 0:
-                            jsonResults.append(sortedLines[line])
-                            limit -= 1
-                        else: break
-        else:
-            for line in sortedLines:
-                if spoken_by.upper() in sortedLines[line]["spoken_by"]:
-                    if line_text in sortedLines[line]["line_text"]: 
-                        if offset > 0:
-                            offset -= 1
-                        else:
-                            if limit > 0:
-                                jsonResults.append(sortedLines[line])
-                                limit -= 1
-                            else: break
+    # filter based on line content
+    if line_text != "":
+        lines_Query = lines_Query.where(db.lines.c.line_text.ilike(f"%{line_text}%"))
 
-    return jsonResults
+    if spoken_by != "":
+        lines_Query = lines_Query.where(db.characters.c.name.ilike(f"%{spoken_by}%"))
 
+    
+
+    with db.engine.connect() as conn:
+        lines_result = conn.execute(lines_Query)
+
+        if lines_result.rowcount == 0:
+            raise HTTPException(status_code=404, detail="no lines not found.")
+
+        res_json = []
+
+        for row in lines_result:
+            spoken_to_character_id = None
+            #determine the character spoken_to id
+            if row.character_id == row.convo_char1:
+                spoken_to_character_id = row.convo_char2
+            else:
+                spoken_to_character_id = row.convo_char1
+
+            spoken_to_character_Query = (
+                sqlalchemy.select(
+                    db.characters.c.name
+                )
+                .where(db.characters.c.character_id == spoken_to_character_id)
+            )
+            spoken_to_char_result = conn.execute(spoken_to_character_Query)
+            spoken_to_char = spoken_to_char_result.fetchone()
+
+            res_json.append({
+                "line_id": row.line_id,
+                # "char_id": line.character_id,
+                "spoken_by": row.spoken_by,
+                "movie": row.movie,
+                # "spoken_to?_1": line.convo_char1,
+                # "spoken_to?_2": line.convo_char2,
+                "spoken_to": spoken_to_char.name,
+                "line_text": row.line_text,
+            })
+
+        return res_json
 
 @router.get("/movie_lines/", tags=["lines"])
 def list_lines(
@@ -146,25 +217,67 @@ def list_lines(
     maximum number of results to return. The `offset` query parameter specifies the
     number of results to skip before returning results.
     """
-    #step 1: gather all the lines that belong to the provided movie
-    linesInMovie = {}
-    for line in db.verbosLines:
-        if db.verbosLines[line]["movie"] == movie_title:
-            key = db.verbosLines[line]["line_id"]
-            value = db.verbosLines[line]
-            linesInMovie[key] = value
-    
-    if len(linesInMovie) == 0:
-        raise HTTPException(status_code=404, detail="movie not found.")
+    lines_Query = (
+        sqlalchemy.select(
+            db.lines.c.line_id,
+            db.lines.c.character_id,
+            db.lines.c.movie_id,
+            db.lines.c.conversation_id,
+            db.lines.c.line_text,
+            db.movies.c.title.label("movie"),
+            db.characters.c.name.label("spoken_by"),
+            db.conversations.c.character1_id.label("convo_char1"),
+            db.conversations.c.character2_id.label("convo_char2"),   
+        )
+        .select_from(
+            db.lines
+            .join(db.characters, db.lines.c.character_id == db.characters.c.character_id)
+            .join(db.movies, db.lines.c.movie_id == db.movies.c.movie_id)
+            .join(db.conversations, db.lines.c.conversation_id == db.conversations.c.conversation_id)
+        )
+        .limit(limit)
+        .offset(offset)
+        .order_by(db.lines.c.line_id)
+    )
 
-    #step 2: do the picking
-    jsonResults = []
-    for line in linesInMovie:
-        if offset > 0:
-            offset -= 1
-        else:
-            if limit > 0:
-                jsonResults.append(linesInMovie[line])
-                limit -= 1
-            else: break
-    return jsonResults
+    # filter based on movie title
+    if movie_title != "":
+        lines_Query = lines_Query.where(db.movies.c.title.ilike(f"%{movie_title}%"))
+    
+    with db.engine.connect() as conn:
+        lines_result = conn.execute(lines_Query)
+
+        if lines_result.rowcount == 0:
+            raise HTTPException(status_code=404, detail="no lines not found.")
+
+        res_json = []
+
+        for row in lines_result:
+            spoken_to_character_id = None
+            #determine the character spoken_to id
+            if row.character_id == row.convo_char1:
+                spoken_to_character_id = row.convo_char2
+            else:
+                spoken_to_character_id = row.convo_char1
+
+            spoken_to_character_Query = (
+                sqlalchemy.select(
+                    db.characters.c.name
+                )
+                .where(db.characters.c.character_id == spoken_to_character_id)
+            )
+            spoken_to_char_result = conn.execute(spoken_to_character_Query)
+            spoken_to_char = spoken_to_char_result.fetchone()
+
+            res_json.append({
+                "line_id": row.line_id,
+                # "char_id": line.character_id,
+                "spoken_by": row.spoken_by,
+                "movie": row.movie,
+                # "spoken_to?_1": line.convo_char1,
+                # "spoken_to?_2": line.convo_char2,
+                "spoken_to": spoken_to_char.name,
+                "line_text": row.line_text,
+            })
+
+        return res_json
