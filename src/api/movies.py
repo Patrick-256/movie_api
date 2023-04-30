@@ -1,82 +1,10 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from enum import Enum
+import sqlalchemy
+from sqlalchemy import create_engine
 from src import database as db
-from fastapi.params import Query
 
 router = APIRouter()
-
-
-def getCharacterName(id: int):
-    name = db.characters[id][0]
-    if name is not None:
-        return name
-    return None
-
-def getTop5charactersFromMovie(movie_id: int):
-    #look at convos for the given movie id
-    #keep track of the top 5 character ids with the most occurences
-    characterIds = [-1]
-    characterLineCounts = [-1]
-
-    for line in db.lines:
-        if db.lines[line][1] == movie_id:
-            characterIds.append(db.lines[line][0])
-            characterLineCounts.append(1)
-
-    #aggregate same characters
-    characterIds_agg = [-1]
-    characterLineCounts_agg = [-1]
-
-    for i in range(len(characterIds)):
-        #check if its already in agg array
-        idFound = False
-        for k in range(len(characterIds_agg)):
-            if characterIds_agg[k] == characterIds[i]:  
-                characterLineCounts_agg[k] += characterLineCounts[i]
-                idFound = True
-
-        if idFound == False:
-            characterIds_agg.insert(0,characterIds[i])
-            characterLineCounts_agg.insert(0,characterLineCounts[i])
-        # #print(characterIds_agg)
-        # #print(characterLineCounts_agg)
-
-    # print("done aggregating")
-    # print(characterIds_agg)
-    # print(characterLineCounts_agg)
-    #sort them
-    sortComplete = False
-    numOfSwaps = 0
-
-    while sortComplete == False:
-        numOfSwaps = 0
-        for i in range(len(characterLineCounts_agg)-1):
-            if characterLineCounts_agg[i] < characterLineCounts_agg[i+1]:
-                #swap them
-                numOfSwaps += 1
-
-                temp1 = characterLineCounts_agg[i]
-                characterLineCounts_agg[i] = characterLineCounts_agg[i+1]
-                characterLineCounts_agg[i+1] = temp1
-                
-                temp2 = characterIds_agg[i]
-                characterIds_agg[i] = characterIds_agg[i+1]
-                characterIds_agg[i+1] = temp2
-        
-        if numOfSwaps == 0: sortComplete = True
-
-
-    json = []
-    for i in range(5):
-        if characterIds_agg[i] == -1: return json
-        character = {
-            "character_id":int(characterIds_agg[i]),
-            "character":getCharacterName(characterIds_agg[i]),
-            "num_lines":characterLineCounts_agg[i]
-        }
-        json.append(character)
-    return json
-
 
 
 # include top 3 actors by number of lines
@@ -96,21 +24,55 @@ def get_movie(movie_id: int):
     * `num_lines`: The number of lines the character has in the movie.
 
     """
-    json = None
-    movie = db.movies.get(int(movie_id))
 
-    if movie is not None:
-        # print("the movie: ",movie)
-        json = {
-            "movie_id":int(movie_id),
-            "title":movie[0],
-            "top_characters":getTop5charactersFromMovie(int(movie_id))
-        }
+    movie = (
+        sqlalchemy.select(
+            db.movies.c.movie_id,
+            db.movies.c.title,
+            db.movies.c.year,
+            db.movies.c.imdb_rating,
+            db.movies.c.imdb_votes,
+        )
+        .where(db.movies.c.movie_id == movie_id)
+    )
+    
+    top_characters = (
+        sqlalchemy.select(
+            db.characters.c.character_id,
+            db.characters.c.name,
+            sqlalchemy.func.count(db.lines.c.character_id).label("num_lines")
+        )
+        .select_from(db.lines.join(db.characters).join(db.movies))
+        .where(db.movies.c.movie_id == movie_id)
+        .group_by(db.characters.c.character_id, db.characters.c.name)
+        .order_by(sqlalchemy.desc("num_lines"))
+        .limit(5)
+    )
 
-    if json is None:
-        raise HTTPException(status_code=404, detail="movie not found.")
+    with db.engine.connect() as conn:
+        movie_result = conn.execute(movie)
+        movie = movie_result.fetchone()
 
-    return json
+        if movie is None:
+            raise HTTPException(status_code=404, detail="movie not found.")
+        characters_result = conn.execute(top_characters)
+        characters_json = []
+        for row in characters_result:
+            characters_json.append(
+                {
+                    "character_id": int(row.character_id),
+                    "character": row.name,
+                    "num_lines": row.num_lines,
+                }
+            )
+
+        res_json = {
+                "movie_id": int(movie.movie_id),
+                "title": movie.title,
+                "top_characters": characters_json,
+            }
+
+    return res_json
 
 
 class movie_sort_options(str, Enum):
@@ -148,51 +110,45 @@ def list_movies(
     maximum number of results to return. The `offset` query parameter specifies the
     number of results to skip before returning results.
     """
-    #step 0: set up movie dictionary
-    simpleMovies = {}
-    for movie in db.movies:
-        key = movie
-        simpleMovie = {
-            "movie_id":movie,
-            "movie_title":db.movies[movie][0],
-            "year":db.movies[movie][1],
-            "imdb_rating":db.movies[movie][2],
-            "imdb_votes":db.movies[movie][3],
-        }
-        simpleMovies[key] = simpleMovie
-
-    #step 1: do the sorting
-    sortedMovies = {}
-    if sort == "movie_title":
-        sortedMovies = {k: v for k, v in sorted(simpleMovies.items(), key=lambda item: item[1]["movie_title"])}
-    if sort == "year":
-        sortedMovies = {k: v for k, v in sorted(simpleMovies.items(), key=lambda item: item[1]["year"])}
-    if sort == "rating":
-        sortedMovies = {k: v for k, v in sorted(simpleMovies.items(), key=lambda item: item[1]["imdb_rating"], reverse=True)}
-
-    # print(sortedMovies)
-
-    #step 2: do the picking
-    jsonResults = []
-
-    if name == "":
-        #no name provided
-        for movie in sortedMovies:
-            if offset > 0:
-                offset -= 1
-            else:
-                if limit > 0:
-                    jsonResults.append(sortedMovies[movie])
-                    limit -= 1
+    if sort is movie_sort_options.movie_title:
+        order_by = db.movies.c.title
+    elif sort is movie_sort_options.year:
+        order_by = db.movies.c.year
+    elif sort is movie_sort_options.rating:
+        order_by = sqlalchemy.desc(db.movies.c.imdb_rating)
     else:
-        for movie in sortedMovies:
-            if name.lower() in sortedMovies[movie]["movie_title"]:
-                if offset > 0:
-                    offset -= 1
-                else:
-                    if limit > 0:
-                        jsonResults.append(sortedMovies[movie])
-                        limit -= 1
+        assert False
 
-    return jsonResults
+    stmt = (
+        sqlalchemy.select(
+            db.movies.c.movie_id,
+            db.movies.c.title,
+            db.movies.c.year,
+            db.movies.c.imdb_rating,
+            db.movies.c.imdb_votes,
+        )
+        .limit(limit)
+        .offset(offset)
+        .order_by(order_by, db.movies.c.movie_id)
+    )
+
+    # filter only if name parameter is passed
+    if name != "":
+        stmt = stmt.where(db.movies.c.title.ilike(f"%{name}%"))
+
+    with db.engine.connect() as conn:
+        result = conn.execute(stmt)
+        json = []
+        for row in result:
+            json.append(
+                {
+                    "movie_id": int(row.movie_id),
+                    "movie_title": row.title,
+                    "year": row.year,
+                    "imdb_rating": row.imdb_rating,
+                    "imdb_votes": row.imdb_votes,
+                }
+            )
+
+    return json
 
