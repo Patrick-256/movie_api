@@ -69,30 +69,6 @@ def get_character(id: int):
         .limit(5)
     )
 
-    top1_conversations_query = (
-        sqlalchemy.select(
-            db.conversations.c.conversation_id,
-            db.conversations.c.character1_id,
-            db.conversations.c.character2_id,
-            db.characters.c.name.label("character1_name"),
-            db.characters.c.name.label("character2_name"),
-            sqlalchemy.func.count(db.lines.c.conversation_id).label("num_lines_convoID")
-        )   
-        .select_from(
-            db.conversations
-            .join(db.lines, db.conversations.c.conversation_id == db.lines.c.conversation_id)
-            .join(db.characters, db.lines.c.character_id == db.characters.c.character_id)
-        )
-        .where(
-            sqlalchemy.or_(
-                db.conversations.c.character1_id == id,
-                db.conversations.c.character2_id == id
-            )
-        )
-        .group_by(db.conversations.c.conversation_id, db.characters.c.character_id, db.characters.c.name)
-        .order_by(sqlalchemy.desc("num_lines_convoID"))
-    )
-
     with db.engine.connect() as conn:
         char_result = conn.execute(characters_Query)
         char = char_result.fetchone()
@@ -106,42 +82,6 @@ def get_character(id: int):
                 "gender":row.gender,
                 "number_of_lines_together":row.num_lines_convoID,
             })
-        convo1_result = conn.execute(top1_conversations_query)
-        top1_convos = []
-        char_convos = {
-                "character_id": None,
-                "character": "placeholder",
-                "gender": "placeholder",
-                "number_of_lines_together": 0
-            }
-        for row in convo1_result:
-            
-            # char_convos = {
-            #     "conversation_id":row.conversation_id,
-            #     "character1_id":row.character1_id,
-            #     "character2_id":row.character2_id,
-            #     "character1_name":row.character1_name,
-            #     "character2_name":row.character2_name,
-            #     "num_lines_convoID":row.num_lines_convoID,
-            # }
-
-            #find out what character was talked to
-            characterTalkedToId = None
-            if row.character1_id == id:
-                characterTalkedToId = row.character2_id
-            else:
-                characterTalkedToId = row.character1_id
-
-            if char_convos["character_id"] == characterTalkedToId:
-                char_convos["number_of_lines_together"] += row.num_lines_convoID
-            elif char_convos["character_id"] is None:
-                char_convos["character_id"] = characterTalkedToId
-                char_convos["number_of_lines_together"] = row.num_lines_convoID
-            else:
-                top1_convos.append(char_convos)
-                char_convos["character_id"] = characterTalkedToId
-                char_convos["number_of_lines_together"] = row.num_lines_convoID
-
 
         if char is None:
             raise HTTPException(status_code=404, detail="character not found.")
@@ -151,11 +91,9 @@ def get_character(id: int):
             "character": char.character,
             "movie": char.movie,
             "gender": char.gender,
-            #"top_conversations":top_convos,
-            "top1_convos":top1_convos,
+            "top_conversations":top_convos,
         }
     return res_json
-
 
 
 class character_sort_options(str, Enum):

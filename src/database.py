@@ -30,47 +30,6 @@ characters = sqlalchemy.Table("characters", metadata_obj, autoload_with=engine)
 conversations = sqlalchemy.Table("conversations", metadata_obj, autoload_with=engine)
 lines = sqlalchemy.Table("lines", metadata_obj, autoload_with=engine)
 
-# movies = Table(
-#     "movies",
-#     metadata,
-#     Column("movie_id", Integer, primary_key=True),
-#     Column("title", String),
-#     Column("year", Integer),
-#     Column("imdb_rating", Float),
-#     Column("imdb_votes", Integer),
-# )
-
-# characters = Table(
-#     "characters",
-#     metadata,
-#     Column("character_id", Integer, primary_key=True),
-#     Column("name", String),
-#     Column("movie_id", Integer),
-#     Column("gender", String),
-#     Column("age", Integer),
-# )
-
-# conversations = Table(
-#     "conversations",
-#     metadata,
-#     Column("conversation_id", Integer, primary_key=True),
-#     Column("character1_id", Integer),
-#     Column("character2_id", Integer),
-#     Column("movie_id", Integer),
-# )
-
-# lines = Table(
-#     "lines",
-#     metadata,
-#     Column("line_id", Integer, primary_key=True),
-#     Column("character_id", Integer),
-#     Column("movie_id", Integer),
-#     Column("conversation_id", Integer),
-#     Column("line_sort", Integer),
-#     Column("line_text", String),
-# )
-
-
 
 # Access the "title" column of the "movies" table using db.movies.c.title
 db = {
