@@ -3,6 +3,8 @@ from src import database as db
 from pydantic import BaseModel
 from typing import List
 from datetime import datetime
+import sqlalchemy
+from sqlalchemy import create_engine
 
 
 # FastAPI is inferring what the request body should look like
@@ -40,70 +42,89 @@ def add_conversation(movie_id: int, conversation: ConversationJson):
     The endpoint returns the id of the resulting conversation that was created.
     """
 
-    # TODO: Remove the following two lines. This is just a placeholder to show
-    # how you could implement persistent storage.
+    print(conversation)
 
-    # print(conversation)
-    response = {"my null response ._."}
+    
 
-    #Step 1: ensure that both characters are part of the movie
-    if db.characters[conversation.character_1_id][1] == movie_id and db.characters[conversation.character_2_id][1] == movie_id and conversation.character_1_id != conversation.character_2_id:
-        #both characters are in the movie
-        print("both characters are in the movie")
-        response = {"made it to step 1 :D"}
+    #Step 1: Query the database to make sure the characters are in the movie
+    if conversation.character_1_id != conversation.character_2_id:
+        character1_query = (
+            sqlalchemy.select(
+                db.characters.c.character_id,
+                db.characters.c.movie_id
+            )
+            .where(db.characters.c.character_id == conversation.character_1_id)
+        )
+        character2_query = (
+            sqlalchemy.select(
+                db.characters.c.character_id,
+                db.characters.c.movie_id
+            )
+            .where(db.characters.c.character_id == conversation.character_2_id)
+        )
 
-        print(conversation)
+        with db.engine.connect() as conn:
+            character1_result = conn.execute(character1_query)
+            character1 = character1_result.fetchone()
+            character2_result = conn.execute(character2_query)
+            character2 = character2_result.fetchone()
 
-        #Step 2: go through the lines and check that the speakers match the characters provided
-        # for line in conversation.lines:
-        #     if conversation.lines[line].character_id != conversation.character_1_id and conversation.lines[line].character_id != conversation.character_2_id:
-        #         raise HTTPException(status_code=404, detail="step 2 failure: a line is spoken by a character not in the conversation")
-        
-        for index, line in enumerate(conversation.lines):
-            if line.character_id != conversation.character_1_id and line.character_id != conversation.character_2_id:
-                raise HTTPException(status_code=400, detail="step 2 failure:a line is spoken by a character not in the conversation")
-        
-        #Step 3: add the conversation to the database
-        response = {"made it to step 3 :D"}
-        
-        #Step 3-1: Add log entry to movie_conversations_log.csv file
-        # get the current date and time
-        now = datetime.now()
+            if character1 is None or character2 is None:
+                return {"one of the characters not found!"}
 
-        # format the date and time as a string
-        date_time_str = now.strftime("%Y-%m-%d %H:%M:%S")
-        print(db.logs)
-        db.logs.append({'post_call_time': date_time_str, 'movie_id_added_to': 525})
-        print(db.logs)
-
-        db.upload_new_log()
-
-        #Step 3-2: Add conversation to conversations.csv file
-        #find out what number to give conversation id
-        last_convo_key = list(db.conversations.keys())[-1]
-        db.conversationsCSV.append({"conversation_id":last_convo_key+1, "character1_id":conversation.character_1_id, "character2_id":conversation.character_2_id, "movie_id":movie_id})
-
-        key = last_convo_key+1
-        values = [conversation.character_1_id,conversation.character_2_id,movie_id]
-        db.conversations[key] = values
-
-        db.upload_new_conversation()
-
-        #Step 3-3 Add the lines to the lines.csv file
-        last_line_key = list(db.lines.keys())[-1]
-        for i in range(len(conversation.lines)):
-            db.linesCSV.append({"line_id":last_line_key+1+i, "character_id":conversation.lines[i].character_id, "movie_id":movie_id, "conversation_id":last_convo_key+1, "line_sort":i+1, "line_text":conversation.lines[i].line_text})
-
-            #Also add the lines to the dictionary the other endpoints use
-            key = last_line_key+1+i
-            values = [conversation.lines[i].character_id,movie_id,last_convo_key+1,i+1,conversation.lines[i].line_text]
-            db.lines[key] = values
-        db.upload_new_lines()
-        db.buildVerboseLines()
-
-        response = last_convo_key+1
-
+            if character1.movie_id != movie_id:
+                return {"character1 is not in this movie!"}
+            if character2.movie_id != movie_id:
+                return {"character2 is not in this movie!"}
     else:
-        raise HTTPException(status_code=404, detail="One or more characters not found in the referenced movie")
+        return {"convesation character ids 1 and 2 are the same! -_-"}
+    
+    
+    #Step 2: check that each line in the conversation is spoken by the provided characters
+    for line in conversation.lines:
+        if line.character_id != conversation.character_1_id and line.character_id != conversation.character_2_id:
+            raise HTTPException(status_code=400, detail="step 2 failure:a line is spoken by a character not in the conversation")
 
-    return response
+    
+    #Step 3: Add this conversation to the database
+    #Step 3-1: Find out what conversation ID to assign
+    lastConvoId_query = sqlalchemy.select(db.conversations.c.conversation_id).order_by(sqlalchemy.desc(db.conversations.c.conversation_id))
+
+    with db.engine.connect() as conn:
+        lastConvoId_result = conn.execute(lastConvoId_query)
+        
+        lastConvoId = lastConvoId_result.fetchone()
+        # print("the last convo is is:")
+        # print(lastConvoId.c.conversation_id)
+        # return {"lastConvoId":lastConvoId.conversation_id}
+    
+    #Step 3-2: Add the new conversation to the conversation table
+    insert_statment = sqlalchemy.insert(db.conversations).values(
+        conversation_id = lastConvoId[0]+1,
+        character1_id = conversation.character_1_id,
+        character2_id = conversation.character_2_id,
+        movie_id = movie_id
+    )
+    with db.engine.begin() as conn:
+        addConvoResult = conn.execute(insert_statment)
+        print(addConvoResult)
+
+    #Step 3-3: Add the lines to the lines database
+    lastLineId_query = sqlalchemy.select(db.lines.c.line_id).order_by(sqlalchemy.desc(db.lines.c.line_id))
+    with db.engine.connect() as conn:
+        lastLineId_result = conn.execute(lastLineId_query)
+        lastLineId = lastLineId_result.fetchone()
+
+    for i in range(len(conversation.lines)):
+        lines_insert_stmt = sqlalchemy.insert(db.lines).values(
+            line_id = lastLineId[0]+1+i,
+            character_id = conversation.lines[i].character_id,
+            movie_id = movie_id,
+            conversation_id = lastConvoId[0]+1,
+            line_sort = i,
+            line_text = conversation.lines[i].line_text
+        )
+        with db.engine.begin() as conn:
+            addLineResult = conn.execute(lines_insert_stmt)
+            print(addLineResult)
+    return {"Added conversation and lines to database!"}
